@@ -89,10 +89,10 @@ development_status:
   # EPIC 7: DNS 迁移与 Multi-DNS
   # 依赖：Epic 6
   # ═══════════════════════════════════════════════════════
-  epic-7: backlog
-  7-1-dns-migration-workflow-mode-b: backlog
-  7-2-migration-rollback-and-recovery: backlog
-  7-3-multi-dns-dual-authority-configuration: backlog
+  epic-7: done
+  7-1-dns-migration-workflow-mode-b: done
+  7-2-migration-rollback-and-recovery: done
+  7-3-multi-dns-dual-authority-configuration: done
   epic-7-retrospective: optional
 
   # ═══════════════════════════════════════════════════════
