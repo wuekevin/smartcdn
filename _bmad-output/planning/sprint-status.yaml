@@ -79,10 +79,10 @@ development_status:
   # EPIC 6: DNS 安全发布引擎（13 步）
   # 依赖：Epic 5
   # ═══════════════════════════════════════════════════════
-  epic-6: backlog
-  6-1-dns-publish-job-core-engine: backlog
-  6-2-distributed-lock-protection: backlog
-  6-3-authoritative-dns-verify-and-external-https-check: backlog
+  epic-6: done
+  6-1-dns-publish-job-core-engine: done
+  6-2-distributed-lock-protection: done
+  6-3-authoritative-dns-verify-and-external-https-check: done
   epic-6-retrospective: optional
 
   # ═══════════════════════════════════════════════════════
