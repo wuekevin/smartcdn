@@ -58,10 +58,10 @@ development_status:
   # EPIC 4: DNS Provider 适配器（阿里云 / DNSPod / Cloudflare）
   # 依赖：Epic 3
   # ═══════════════════════════════════════════════════════
-  epic-4: backlog
-  4-1-aliyun-dns-adapter: backlog
-  4-2-tencent-dnspod-adapter: backlog
-  4-3-cloudflare-dns-adapter: backlog
+  epic-4: done
+  4-1-aliyun-dns-adapter: done
+  4-2-tencent-dnspod-adapter: done
+  4-3-cloudflare-dns-adapter: done
   epic-4-retrospective: optional
 
   # ═══════════════════════════════════════════════════════
