@@ -1,0 +1,216 @@
+# generated: 11-09-2026 10:00
+# project: SmartCDN
+# project_key: SMARTCDN
+# tracking_system: file-system
+# story_location: "SmartCDN/_bmad-output/stories"
+
+# Readiness Gate: CONCERNS (minor, non-blocking) → 진행 권장
+# Gate findings:
+#   1. mTLS CA 부트스트랩 Story 누락 (Epic 15에 추가 권장)
+#   2. goose 마이그레이션 도구 Architecture Spine 스택 테이블에 미기재
+#   3. wire DI 설정 작업량 과소평가 가능성
+
+generated: 11-09-2026 10:00
+last_updated: 11-09-2026 10:00
+project: SmartCDN
+project_key: SMARTCDN
+tracking_system: file-system
+story_location: "SmartCDN/_bmad-output/stories"
+
+development_status:
+  # ═══════════════════════════════════════════════════════
+  # EPIC 1: 项目基础架构与安装向导
+  # 依赖：无（起点）
+  # ═══════════════════════════════════════════════════════
+  epic-1: in-progress
+  1-1-project-scaffold-and-directory-structure: done
+  1-2-database-migration-goose-and-core-tables: done
+  1-3-aes-256-gcm-encryption-infrastructure: done
+  1-4-structured-logging-zap: done
+  1-5-setup-wizard-backend-env-check-and-init-api: done
+  1-6-setup-wizard-frontend-9-step-ui: done
+  epic-1-retrospective: optional
+
+  # ═══════════════════════════════════════════════════════
+  # EPIC 2: 用户认证与 RBAC
+  # 依赖：Epic 1
+  # ═══════════════════════════════════════════════════════
+  epic-2: backlog
+  2-1-user-login-and-jwt-auth: backlog
+  2-2-rbac-roles-and-permission-control: backlog
+  2-3-audit-log-middleware: backlog
+  2-4-csrf-xss-and-security-response-headers: backlog
+  epic-2-retrospective: optional
+
+  # ═══════════════════════════════════════════════════════
+  # EPIC 3: DNS Provider 插件框架
+  # 依赖：Epic 1, Epic 2
+  # ═══════════════════════════════════════════════════════
+  epic-3: backlog
+  3-1-dns-provider-port-interface-definition: backlog
+  3-2-provider-registry-and-dependency-injection: backlog
+  3-3-provider-capability-detection-and-cache: backlog
+  3-4-provider-api-rate-limiting-token-bucket: backlog
+  3-5-credential-encrypted-storage-and-api-management: backlog
+  epic-3-retrospective: optional
+
+  # ═══════════════════════════════════════════════════════
+  # EPIC 4: DNS Provider 适配器（阿里云 / DNSPod / Cloudflare）
+  # 依赖：Epic 3
+  # ═══════════════════════════════════════════════════════
+  epic-4: backlog
+  4-1-aliyun-dns-adapter: backlog
+  4-2-tencent-dnspod-adapter: backlog
+  4-3-cloudflare-dns-adapter: backlog
+  epic-4-retrospective: optional
+
+  # ═══════════════════════════════════════════════════════
+  # EPIC 5: 多域名与 DNS 记录管理
+  # 依赖：Epic 4
+  # ═══════════════════════════════════════════════════════
+  epic-5: backlog
+  5-1-multi-account-management: backlog
+  5-2-domain-dns-configuration-management: backlog
+  5-3-dns-record-crud: backlog
+  5-4-dns-history-snapshot-and-rollback: backlog
+  epic-5-retrospective: optional
+
+  # ═══════════════════════════════════════════════════════
+  # EPIC 6: DNS 安全发布引擎（13 步）
+  # 依赖：Epic 5
+  # ═══════════════════════════════════════════════════════
+  epic-6: backlog
+  6-1-dns-publish-job-core-engine: backlog
+  6-2-distributed-lock-protection: backlog
+  6-3-authoritative-dns-verify-and-external-https-check: backlog
+  epic-6-retrospective: optional
+
+  # ═══════════════════════════════════════════════════════
+  # EPIC 7: DNS 迁移与 Multi-DNS
+  # 依赖：Epic 6
+  # ═══════════════════════════════════════════════════════
+  epic-7: backlog
+  7-1-dns-migration-workflow-mode-b: backlog
+  7-2-migration-rollback-and-recovery: backlog
+  7-3-multi-dns-dual-authority-configuration: backlog
+  epic-7-retrospective: optional
+
+  # ═══════════════════════════════════════════════════════
+  # EPIC 8: CDN Provider 框架与 Cloudflare SaaS / 阿里云 CDN
+  # 依赖：Epic 4（Cloudflare DNS 适配器用于 DCV 自动化）
+  # ═══════════════════════════════════════════════════════
+  epic-8: backlog
+  8-1-cdn-provider-port-interface-and-registry: backlog
+  8-2-cloudflare-zone-management: backlog
+  8-3-cloudflare-saas-custom-hostname-with-dcv: backlog
+  8-4-aliyun-cdn-management-integration: backlog
+  8-5-cdn-cache-rules-and-purge: backlog
+  epic-8-retrospective: optional
+
+  # ═══════════════════════════════════════════════════════
+  # EPIC 9: 自有节点管理、Node Agent 与缓存
+  # 依赖：Epic 2（RBAC），Epic 1（加密）
+  # ═══════════════════════════════════════════════════════
+  epic-9: backlog
+  9-1-self-hosted-node-crud-and-https-check: backlog
+  9-2-node-agent-install-and-mtls-auth: backlog
+  9-3-node-resource-pool-management: backlog
+  epic-9-retrospective: optional
+
+  # ═══════════════════════════════════════════════════════
+  # EPIC 10: 三网智能调度与 Probe Agent
+  # 依赖：Epic 5（域名管理），Epic 9（节点）
+  # ═══════════════════════════════════════════════════════
+  epic-10: backlog
+  10-1-probe-agent-binary-and-mtls-communication: backlog
+  10-2-ip-candidate-pool-management-and-state-machine: backlog
+  10-3-three-network-scheduling-scoring-and-auto-publish: backlog
+  epic-10-retrospective: optional
+
+  # ═══════════════════════════════════════════════════════
+  # EPIC 11: Node Agent 状态上报与管理
+  # 依赖：Epic 9
+  # ═══════════════════════════════════════════════════════
+  epic-11: backlog
+  11-1-node-agent-status-reporting-and-monitoring-integration: backlog
+  epic-11-retrospective: optional
+
+  # ═══════════════════════════════════════════════════════
+  # EPIC 12: SSL 证书管理与 ACME 自动化
+  # 依赖：Epic 4（DNS Provider 用于 DNS-01），Epic 1（加密）
+  # ═══════════════════════════════════════════════════════
+  epic-12: backlog
+  12-1-acme-account-management: backlog
+  12-2-ssl-certificate-apply-dns-01-challenge: backlog
+  12-3-certificate-import-and-management: backlog
+  12-4-certificate-expiry-monitoring-and-auto-renewal-trigger: backlog
+  epic-12-retrospective: optional
+
+  # ═══════════════════════════════════════════════════════
+  # EPIC 13: 证书工作流 DAG 引擎与部署
+  # 依赖：Epic 12，Epic 9（Node Agent 部署目标）
+  # ═══════════════════════════════════════════════════════
+  epic-13: backlog
+  13-1-dag-workflow-engine-core: backlog
+  13-2-certificate-deploy-to-baota-nginx: backlog
+  13-3-certificate-deploy-to-aliyun-cdn: backlog
+  13-4-dag-workflow-ui-editor: backlog
+  13-5-workflow-execution-logs-sse: backlog
+  epic-13-retrospective: optional
+
+  # ═══════════════════════════════════════════════════════
+  # EPIC 14: 监控、告警与通知
+  # 依赖：Epic 10（三网数据），Epic 12（SSL 到期）
+  # ═══════════════════════════════════════════════════════
+  epic-14: backlog
+  14-1-monitoring-dashboard-and-performance-trends: backlog
+  14-2-alert-rules-and-records-management: backlog
+  14-3-notification-channels-email-and-webhook: backlog
+  epic-14-retrospective: optional
+
+  # ═══════════════════════════════════════════════════════
+  # EPIC 15: 实时推送（SSE / WebSocket）
+  # 依赖：Epic 2（JWT 认证）
+  # ═══════════════════════════════════════════════════════
+  epic-15: backlog
+  15-1-sse-global-event-stream: backlog
+  15-2-task-log-stream-sse-and-workflow-websocket: backlog
+  epic-15-retrospective: optional
+
+  # ═══════════════════════════════════════════════════════
+  # EPIC 16: 部署打包（宝塔 Go / systemd / Docker）
+  # 依赖：所有功能 Epic
+  # ═══════════════════════════════════════════════════════
+  epic-16: backlog
+  16-1-single-binary-build-with-frontend-embed: backlog
+  16-2-systemd-unit-file: backlog
+  16-3-docker-and-docker-compose-deployment: backlog
+  epic-16-retrospective: optional
+
+  # ═══════════════════════════════════════════════════════
+  # EPIC 17: 前端基础与 UX 完整性
+  # 依赖：Epic 2（路由守卫），并行于所有功能 Epic
+  # ═══════════════════════════════════════════════════════
+  epic-17: backlog
+  17-1-frontend-scaffold-and-routing: backlog
+  17-2-global-layout-nav-and-topbar: backlog
+  17-3-dual-theme-light-dark: backlog
+  17-4-global-search-cmd-k: backlog
+  17-5-high-risk-operation-confirmation-component: backlog
+  17-6-skeleton-screen-and-responsive-layout: backlog
+  epic-17-retrospective: optional
+
+# Action items from readiness gate
+action_items:
+  - epic: 1
+    action: "补充 mTLS CA 证书生成 Story（建议加入 Epic 15 系统管理，或 Epic 1 Story 1.7）"
+    owner: ""
+    status: open
+  - epic: 1
+    action: "在 Architecture Spine 技术栈表中明确 goose 作为数据库迁移工具"
+    owner: ""
+    status: open
+  - epic: 1
+    action: "评估 wire DI 设置复杂度，若 1.1 超过 2 天则拆分为独立 Story"
+    owner: ""
+    status: open

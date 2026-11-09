@@ -1,0 +1,40 @@
+# Binaries
+dist/
+*.exe
+*.out
+
+# Environment & secrets
+.env
+.env.*
+!.env.example
+
+# Install lock (tracked separately per deployment)
+install.lock
+
+# Go
+vendor/
+go.sum
+
+# Frontend
+frontend/node_modules/
+frontend/dist/
+
+# IDE
+.idea/
+.vscode/
+*.swp
+*.swo
+
+# OS
+.DS_Store
+Thumbs.db
+
+# Logs
+*.log
+
+# Test coverage
+coverage.out
+coverage.html
+
+# Wire generated
+internal/wire_gen.go
