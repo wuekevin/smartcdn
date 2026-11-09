@@ -46,12 +46,12 @@ development_status:
   # EPIC 3: DNS Provider 插件框架
   # 依赖：Epic 1, Epic 2
   # ═══════════════════════════════════════════════════════
-  epic-3: backlog
-  3-1-dns-provider-port-interface-definition: backlog
-  3-2-provider-registry-and-dependency-injection: backlog
-  3-3-provider-capability-detection-and-cache: backlog
-  3-4-provider-api-rate-limiting-token-bucket: backlog
-  3-5-credential-encrypted-storage-and-api-management: backlog
+  epic-3: done
+  3-1-dns-provider-port-interface-definition: done
+  3-2-provider-registry-and-dependency-injection: done
+  3-3-provider-capability-detection-and-cache: done
+  3-4-provider-api-rate-limiting-token-bucket: done
+  3-5-credential-encrypted-storage-and-api-management: done
   epic-3-retrospective: optional
 
   # ═══════════════════════════════════════════════════════
