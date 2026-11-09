@@ -68,11 +68,11 @@ development_status:
   # EPIC 5: 多域名与 DNS 记录管理
   # 依赖：Epic 4
   # ═══════════════════════════════════════════════════════
-  epic-5: backlog
-  5-1-multi-account-management: backlog
-  5-2-domain-dns-configuration-management: backlog
-  5-3-dns-record-crud: backlog
-  5-4-dns-history-snapshot-and-rollback: backlog
+  epic-5: in_progress
+  5-1-multi-account-management: done
+  5-2-domain-dns-configuration-management: done
+  5-3-dns-record-crud: done
+  5-4-dns-history-snapshot-and-rollback: done
   epic-5-retrospective: optional
 
   # ═══════════════════════════════════════════════════════
