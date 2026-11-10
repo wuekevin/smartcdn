@@ -1,0 +1,21 @@
+[Unit]
+Description=SmartCDN Node Agent
+After=network.target nginx.service
+Wants=nginx.service
+
+[Service]
+Type=simple
+User=root
+WorkingDirectory=/opt/smartcdn-agent
+ExecStart=/opt/smartcdn-agent/node-agent
+Restart=on-failure
+RestartSec=10
+
+EnvironmentFile=-/etc/smartcdn/node-agent.env
+
+StandardOutput=journal
+StandardError=journal
+SyslogIdentifier=smartcdn-node-agent
+
+[Install]
+WantedBy=multi-user.target

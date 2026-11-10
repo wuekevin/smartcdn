@@ -1,0 +1,29 @@
+[Unit]
+Description=SmartCDN Server
+After=network.target mysql.service
+Wants=mysql.service
+
+[Service]
+Type=simple
+User=smartcdn
+Group=smartcdn
+WorkingDirectory=/opt/smartcdn
+ExecStart=/opt/smartcdn/smartcdn
+Restart=on-failure
+RestartSec=5
+
+# Environment — override in /etc/smartcdn/smartcdn.env
+EnvironmentFile=-/etc/smartcdn/smartcdn.env
+
+# Hardening
+NoNewPrivileges=true
+PrivateTmp=true
+ProtectSystem=full
+ProtectHome=read-only
+
+StandardOutput=journal
+StandardError=journal
+SyslogIdentifier=smartcdn
+
+[Install]
+WantedBy=multi-user.target

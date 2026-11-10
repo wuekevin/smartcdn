@@ -1,0 +1,23 @@
+[Unit]
+Description=SmartCDN Probe Agent
+After=network.target
+
+[Service]
+Type=simple
+User=smartcdn-probe
+WorkingDirectory=/opt/smartcdn-probe
+ExecStart=/opt/smartcdn-probe/probe-agent
+Restart=on-failure
+RestartSec=15
+
+EnvironmentFile=-/etc/smartcdn/probe-agent.env
+
+NoNewPrivileges=true
+PrivateTmp=true
+
+StandardOutput=journal
+StandardError=journal
+SyslogIdentifier=smartcdn-probe-agent
+
+[Install]
+WantedBy=multi-user.target
