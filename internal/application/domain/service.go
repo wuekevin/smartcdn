@@ -395,6 +395,39 @@ func (s *Service) deleteOnProvider(ctx context.Context, d *entity.Domain, provid
 	return p.DeleteRecord(ctx, zoneID, providerRecordID)
 }
 
+// PublishIPForISP finds the A record for the given ISP line on domainID and
+// updates its value to ip. It satisfies the scheduler.DNSPublisher interface.
+func (s *Service) PublishIPForISP(ctx context.Context, domainID uint64, isp, ip string) error {
+	d, err := s.domains.FindByID(ctx, domainID)
+	if err != nil {
+		return err
+	}
+	records, err := s.records.ListByDomain(ctx, domainID, 0, 500)
+	if err != nil {
+		return err
+	}
+	for _, r := range records {
+		if r.Type == "A" && r.Line == isp {
+			return s.updateOnProvider(ctx, d, r.ProviderID, UpdateRecordInput{
+				Host:  r.Host,
+				Type:  r.Type,
+				Value: ip,
+				TTL:   r.TTL,
+				Line:  r.Line,
+			})
+		}
+	}
+	// No existing record for this ISP line — create one.
+	_, err = s.createOnProvider(ctx, d, CreateRecordInput{
+		Host:  "@",
+		Type:  "A",
+		Value: ip,
+		TTL:   60,
+		Line:  isp,
+	})
+	return err
+}
+
 // --- View converters ---
 
 func domainToView(d *entity.Domain) *DomainView {
