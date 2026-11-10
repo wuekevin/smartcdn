@@ -1,0 +1,29 @@
+import axios from 'axios';
+
+const client = axios.create({
+  baseURL: '/api/v1',
+  timeout: 30_000,
+  headers: { 'Content-Type': 'application/json' },
+});
+
+// Attach JWT from localStorage if present.
+client.interceptors.request.use((config) => {
+  const token = localStorage.getItem('token');
+  if (token) {
+    config.headers.Authorization = `Bearer ${token}`;
+  }
+  return config;
+});
+
+// Redirect to /login on 401.
+client.interceptors.response.use(
+  (res) => res,
+  (err) => {
+    if (err.response?.status === 401) {
+      window.location.href = '/login';
+    }
+    return Promise.reject(err);
+  }
+);
+
+export default client;
