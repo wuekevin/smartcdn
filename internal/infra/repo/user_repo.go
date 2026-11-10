@@ -61,6 +61,25 @@ func (r *UserRepo) UpdateLastLogin(ctx context.Context, userID uint64) error {
 		}).Error
 }
 
+// List returns users with cursor-based pagination.
+func (r *UserRepo) List(ctx context.Context, afterID uint64, limit int) ([]entity.User, error) {
+	if limit <= 0 || limit > 100 {
+		limit = 20
+	}
+	q := r.db.WithContext(ctx).Model(&entity.User{}).Where("deleted_at IS NULL").Order("id ASC").Limit(limit)
+	if afterID > 0 {
+		q = q.Where("id > ?", afterID)
+	}
+	var users []entity.User
+	return users, q.Find(&users).Error
+}
+
+func (r *UserRepo) SoftDelete(ctx context.Context, id uint64) error {
+	return r.db.WithContext(ctx).Model(&entity.User{}).
+		Where("id = ? AND deleted_at IS NULL", id).
+		Update("deleted_at", "NOW()").Error
+}
+
 func (r *UserRepo) GetPermissions(ctx context.Context, userID uint64) ([]entity.Permission, error) {
 	var perms []entity.Permission
 	err := r.db.WithContext(ctx).Raw(`

@@ -106,6 +106,7 @@ func main() {
 	alertChannelRepo := repo.NewAlertChannelRepo(gdb)
 	migJobRepo := repo.NewMigrationJobRepo(gdb)
 	multiDNSConfigRepo := repo.NewMultiDNSConfigRepo(gdb)
+	auditRepo := repo.NewAuditRepo(gdb)
 
 	// --- Infra ---
 	dnsRegistry := infraprovider.NewRegistry()
@@ -121,7 +122,6 @@ func main() {
 	publishEngine := publishsvc.NewEngine(publishJobRepo, domainRepo, dnsRecordRepo, dnsSnapshotRepo, dnsAccountRepo, dnsRegistry, rdb)
 	nodeSvc := nodeapp.NewService(cdnNodeRepo, nodeAgentRepo, nodeTaskRepo, nodePoolRepo)
 	probeSvc := probeapp.NewService(probeAgentRepo, probeResultRepo, ipCandidateRepo)
-	_ = probeResultRepo // also used by probeSvc above
 	_ = circuitBreakerRepo
 	certSvc := certapp.NewService(certRepo, certDeployTargetRepo, acmeAccountRepo, &providerDNSAdapter{svc: providerSvc})
 	wfEngine := wfapp.NewEngine(wfTemplateRepo, wfRunRepo, wfNodeRunRepo)
@@ -143,13 +143,17 @@ func main() {
 	monitorHandler := api.NewMonitorHandler(monitorSvc)
 	sseHandler := api.NewSSEHandler(hub)
 	dashboardHandler := api.NewDashboardHandler(gdb)
+	userHandler := api.NewUserHandler(userRepo)
+	auditLogsHandler := api.NewAuditLogsHandler(auditRepo)
 
 	// Public auth routes
 	authHandler.RegisterAuth(v1)
 
-	// Protected routes (JWT required)
+	// Protected routes (JWT required + CSRF + audit logging)
 	protected := v1.Group("")
 	protected.Use(api.JWTMiddleware())
+	protected.Use(api.CSRFMiddleware(rdb))
+	protected.Use(api.AuditLoggerMiddleware(auditRepo))
 
 	dashboardHandler.RegisterRoutes(protected)
 	dnsAccountHandler.RegisterRoutes(protected)
@@ -162,6 +166,8 @@ func main() {
 	migHandler.RegisterRoutes(protected)
 	monitorHandler.RegisterRoutes(protected)
 	sseHandler.RegisterRoutes(protected)
+	userHandler.RegisterRoutes(protected)
+	auditLogsHandler.RegisterRoutes(protected)
 
 	// Agent/probe routes use token auth (not JWT)
 	agentHandler.RegisterRoutes(v1)

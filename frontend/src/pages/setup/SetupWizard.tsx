@@ -211,7 +211,15 @@ export default function SetupWizard() {
             <div style={{ textAlign: 'center', padding: '32px 0' }}>
               <div style={{ fontSize: 48, color: '#00B42A', marginBottom: 16 }}>✓</div>
               <Title heading={4}>安装完成</Title>
-              <Text>SmartCDN 已成功安装，您可以开始使用了。</Text>
+              <Text>数据库已初始化，管理员账户已创建。</Text>
+              <div style={{ marginTop: 16, textAlign: 'left', background: '#f5f5f5', borderRadius: 6, padding: '16px 24px', maxWidth: 480, margin: '16px auto 0' }}>
+                <Text bold>下一步操作：</Text>
+                <ol style={{ marginTop: 8, paddingLeft: 20 }}>
+                  <li>在服务器设置环境变量 <code>DB_DSN</code> 和 <code>REDIS_URL</code></li>
+                  <li>重启 SmartCDN 服务（<code>systemctl restart smartcdn</code>）</li>
+                  <li>访问 <code>/login</code> 使用管理员账户登录</li>
+                </ol>
+              </div>
               <div style={{ marginTop: 24 }}>
                 <Button type="primary" size="large" href="/login">前往登录</Button>
               </div>
