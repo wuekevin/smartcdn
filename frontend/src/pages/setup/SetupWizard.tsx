@@ -156,7 +156,13 @@ export default function SetupWizard() {
                 <>
                   <Title heading={5}>Redis 配置</Title>
                   <Form.Item label="Redis 地址" field="redis_addr" rules={[{ required: true }]} initialValue="127.0.0.1:6379">
-                    <Input />
+                    <Input placeholder="127.0.0.1:6379" />
+                  </Form.Item>
+                  <Form.Item label="Redis 密码" field="redis_password">
+                    <Input.Password placeholder="无密码留空" />
+                  </Form.Item>
+                  <Form.Item label="Redis DB 编号" field="redis_db" initialValue={0}>
+                    <Input type="number" placeholder="0" style={{ width: 120 }} />
                   </Form.Item>
                 </>
               )}

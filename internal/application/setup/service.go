@@ -48,10 +48,16 @@ func (s *Service) Check(ctx context.Context, dbDSN, redisAddr string) entity.Set
 	}
 }
 
-// Complete finalizes the installation: runs migrations, creates admin user, writes install.lock.
+// Complete finalizes the installation: validates connections, runs migrations,
+// creates admin user, and writes install.lock.
 func (s *Service) Complete(ctx context.Context, input entity.SetupCompleteInput) error {
-	dsn := buildDSN(input)
+	// Validate Redis connectivity before touching the database.
+	redisCheck := checkRedisWithAuth(ctx, input.RedisAddr, input.RedisPassword, input.RedisDB)
+	if redisCheck.Status == "fail" {
+		return fmt.Errorf("redis: %s", redisCheck.Message)
+	}
 
+	dsn := buildDSN(input)
 	db, err := gorm.Open(mysql.Open(dsn), &gorm.Config{})
 	if err != nil {
 		return fmt.Errorf("database connection failed: %w", err)
@@ -67,7 +73,7 @@ func (s *Service) Complete(ctx context.Context, input entity.SetupCompleteInput)
 		return fmt.Errorf("creating admin user: %w", err)
 	}
 
-	if err := writeLock(input.SiteURL); err != nil {
+	if err := writeLock(input); err != nil {
 		return fmt.Errorf("writing install.lock: %w", err)
 	}
 
@@ -131,6 +137,18 @@ func checkRedis(ctx context.Context, addr string) entity.CheckItem {
 	return entity.CheckItem{Name: "redis", Status: "ok"}
 }
 
+func checkRedisWithAuth(ctx context.Context, addr, password string, db int) entity.CheckItem {
+	if addr == "" {
+		return entity.CheckItem{Name: "redis", Status: "ok", Message: "not yet configured"}
+	}
+	rdb := redis.NewClient(&redis.Options{Addr: addr, Password: password, DB: db})
+	defer rdb.Close()
+	if err := rdb.Ping(ctx).Err(); err != nil {
+		return entity.CheckItem{Name: "redis", Status: "fail", Message: "connection failed: " + err.Error()}
+	}
+	return entity.CheckItem{Name: "redis", Status: "ok"}
+}
+
 func buildDSN(input entity.SetupCompleteInput) string {
 	return fmt.Sprintf("%s:%s@tcp(%s:%d)/%s?charset=utf8mb4&parseTime=True&loc=Local",
 		input.DBUser, input.DBPassword, input.DBHost, input.DBPort, input.DBName)
@@ -162,7 +180,13 @@ func createAdminUser(db *gorm.DB, username, password string) error {
 	).Error
 }
 
-func writeLock(siteURL string) error {
-	content := fmt.Sprintf("installed=%s\nsite_url=%s\n", time.Now().Format(time.RFC3339), siteURL)
+func writeLock(input entity.SetupCompleteInput) error {
+	content := fmt.Sprintf(
+		"installed=%s\nsite_url=%s\nredis_addr=%s\nredis_db=%d\n",
+		time.Now().Format(time.RFC3339),
+		input.SiteURL,
+		input.RedisAddr,
+		input.RedisDB,
+	)
 	return os.WriteFile(installLockPath, []byte(content), 0600)
 }
