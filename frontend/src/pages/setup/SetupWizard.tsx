@@ -45,10 +45,6 @@ export default function SetupWizard() {
     try {
       const { data } = await axios.get<SetupCheckResult>('/api/v1/setup/check');
       setCheckResult(data);
-      const hasFailure = Object.values(data).some((item) => item.status === 'fail');
-      if (!hasFailure) {
-        setCurrent(2);
-      }
     } catch (e: unknown) {
       setError('环境检测失败，请检查服务器日志');
     } finally {
