@@ -32,12 +32,20 @@ const STEP_LABELS = [
   '完成',
 ];
 
+function genHexKey(): string {
+  const bytes = new Uint8Array(32);
+  crypto.getRandomValues(bytes);
+  return Array.from(bytes, b => b.toString(16).padStart(2, '0')).join('');
+}
+
 export default function SetupWizard() {
   const [current, setCurrent] = useState(0);
   const [loading, setLoading] = useState(false);
   const [checkResult, setCheckResult] = useState<SetupCheckResult | null>(null);
   const [error, setError] = useState<string | null>(null);
   const [form] = Form.useForm();
+  // Generated once; stable across re-renders
+  const [encryptKey] = useState(genHexKey);
 
   const runEnvCheck = async () => {
     setLoading(true);
@@ -70,6 +78,10 @@ export default function SetupWizard() {
     }
   };
 
+  const copyKey = () => {
+    navigator.clipboard?.writeText(encryptKey).catch(() => {});
+  };
+
   return (
     <div style={{ minHeight: '100vh', background: '#F2F3F5', display: 'flex', flexDirection: 'column', alignItems: 'center', paddingTop: 48 }}>
       <div style={{ width: '100%', maxWidth: 900, padding: '0 24px' }}>
@@ -78,7 +90,9 @@ export default function SetupWizard() {
           <Text type="secondary">完成以下步骤以初始化您的 SmartCDN 实例</Text>
         </div>
 
-        <Steps current={current} style={{ marginBottom: 32 }} size="small">
+        {/* Arco Design Steps is 1-indexed: pass current + 1 so the highlighted
+            step matches the rendered content (which uses 0-indexed state). */}
+        <Steps current={current + 1} style={{ marginBottom: 32 }} size="small">
           {STEP_LABELS.map((label, i) => (
             <Step key={i} title={label} />
           ))}
@@ -135,19 +149,33 @@ export default function SetupWizard() {
             </div>
           )}
 
-          {/* Steps 2-7: Configuration Form */}
+          {/* Steps 2–7: Configuration Form */}
           {current >= 2 && current <= 7 && (
             <Form form={form} layout="vertical" autoComplete="off">
+
+              {/* Step 2: 数据库配置 */}
               {current === 2 && (
                 <>
                   <Title heading={5}>数据库配置</Title>
-                  <Form.Item label="主机" field="db_host" rules={[{ required: true }]}><Input placeholder="127.0.0.1" /></Form.Item>
-                  <Form.Item label="端口" field="db_port" initialValue={3306} rules={[{ required: true }]}><Input type="number" /></Form.Item>
-                  <Form.Item label="数据库名" field="db_name" rules={[{ required: true }]}><Input placeholder="smartcdn" /></Form.Item>
-                  <Form.Item label="用户名" field="db_user" rules={[{ required: true }]}><Input /></Form.Item>
-                  <Form.Item label="密码" field="db_password"><Input.Password /></Form.Item>
+                  <Form.Item label="主机" field="db_host" rules={[{ required: true }]}>
+                    <Input placeholder="127.0.0.1" />
+                  </Form.Item>
+                  <Form.Item label="端口" field="db_port" initialValue={3306} rules={[{ required: true }]}>
+                    <Input type="number" />
+                  </Form.Item>
+                  <Form.Item label="数据库名" field="db_name" rules={[{ required: true }]}>
+                    <Input placeholder="smartcdn" />
+                  </Form.Item>
+                  <Form.Item label="用户名" field="db_user" rules={[{ required: true }]}>
+                    <Input />
+                  </Form.Item>
+                  <Form.Item label="密码" field="db_password">
+                    <Input.Password />
+                  </Form.Item>
                 </>
               )}
+
+              {/* Step 3: Redis 配置 */}
               {current === 3 && (
                 <>
                   <Title heading={5}>Redis 配置</Title>
@@ -162,10 +190,27 @@ export default function SetupWizard() {
                   </Form.Item>
                 </>
               )}
+
+              {/* Step 4: 数据迁移 */}
+              {current === 4 && (
+                <>
+                  <Title heading={5}>数据迁移</Title>
+                  <Alert
+                    type="info"
+                    style={{ marginBottom: 16 }}
+                    content="数据库表结构将在安装完成时自动创建，无需任何手动操作。"
+                  />
+                  <Text type="secondary">点击「下一步」继续完成安装配置。</Text>
+                </>
+              )}
+
+              {/* Step 5: 管理员账号 */}
               {current === 5 && (
                 <>
                   <Title heading={5}>管理员账号</Title>
-                  <Form.Item label="用户名" field="admin_username" rules={[{ required: true }]}><Input /></Form.Item>
+                  <Form.Item label="用户名" field="admin_username" rules={[{ required: true }]}>
+                    <Input />
+                  </Form.Item>
                   <Form.Item
                     label="密码"
                     field="admin_password"
@@ -187,17 +232,54 @@ export default function SetupWizard() {
                   </Form.Item>
                 </>
               )}
+
+              {/* Step 6: 加密密钥 */}
+              {current === 6 && (
+                <>
+                  <Title heading={5}>加密密钥</Title>
+                  <Alert
+                    type="warning"
+                    style={{ marginBottom: 16 }}
+                    content="系统使用 AES-256-GCM 加密所有 API 凭证和 SSL 私钥。安装完成后请将以下密钥设置为环境变量 SMARTCDN_ENCRYPT_KEY，丢失后加密数据将无法恢复。"
+                  />
+                  <Form.Item
+                    label="加密密钥（SMARTCDN_ENCRYPT_KEY）"
+                    field="encrypt_key"
+                    initialValue={encryptKey}
+                    extra="已为您自动生成 32 字节随机密钥，请复制保存到安全位置。"
+                  >
+                    <Input
+                      readOnly
+                      suffix={
+                        <Button size="mini" type="text" onClick={copyKey}>
+                          复制
+                        </Button>
+                      }
+                    />
+                  </Form.Item>
+                </>
+              )}
+
+              {/* Step 7: 访问地址 */}
               {current === 7 && (
                 <>
                   <Title heading={5}>访问地址</Title>
-                  <Form.Item label="站点 URL" field="site_url" rules={[{ required: true }, { type: 'url' }]} initialValue="http://localhost:8080">
+                  <Form.Item
+                    label="站点 URL"
+                    field="site_url"
+                    rules={[{ required: true }, { type: 'url' }]}
+                    initialValue="http://localhost:8080"
+                  >
                     <Input />
                   </Form.Item>
                 </>
               )}
 
-              <Space>
-                {current > 2 && <Button onClick={() => setCurrent((c) => c - 1)}>上一步</Button>}
+              <Space style={{ marginTop: 16 }}>
+                {/* Allow going back from DB config (2) to env check (1) */}
+                {current > 1 && (
+                  <Button onClick={() => setCurrent((c) => c - 1)}>上一步</Button>
+                )}
                 {current < 7 && (
                   <Button type="primary" onClick={() => setCurrent((c) => c + 1)}>下一步</Button>
                 )}
@@ -217,7 +299,7 @@ export default function SetupWizard() {
               <div style={{ marginTop: 16, textAlign: 'left', background: '#f5f5f5', borderRadius: 6, padding: '16px 24px', maxWidth: 480, margin: '16px auto 0' }}>
                 <Text bold>下一步操作：</Text>
                 <ol style={{ marginTop: 8, paddingLeft: 20 }}>
-                  <li>在服务器设置环境变量 <code>DB_DSN</code> 和 <code>REDIS_URL</code></li>
+                  <li>在服务器设置环境变量 <code>DB_DSN</code>、<code>REDIS_URL</code> 和 <code>SMARTCDN_ENCRYPT_KEY</code></li>
                   <li>重启 SmartCDN 服务（<code>systemctl restart smartcdn</code>）</li>
                   <li>访问 <code>/login</code> 使用管理员账户登录</li>
                 </ol>
