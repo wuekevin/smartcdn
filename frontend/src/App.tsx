@@ -1,5 +1,5 @@
 import { useEffect, useState } from 'react';
-import { BrowserRouter, Routes, Route, Navigate, useNavigate } from 'react-router-dom';
+import { BrowserRouter, Routes, Route, Navigate } from 'react-router-dom';
 import { QueryClient, QueryClientProvider } from '@tanstack/react-query';
 import { Spin } from '@arco-design/web-react';
 import axios from 'axios';
@@ -44,21 +44,17 @@ function ProtectedRoute({ children }: { children: React.ReactNode }) {
 
 function AppInitializer() {
   const [checking, setChecking] = useState(true);
-  const navigate = useNavigate();
+  const [needsSetup, setNeedsSetup] = useState(false);
 
   useEffect(() => {
-    axios.get('/api/v1/setup/check').then(() => {
-      navigate('/setup', { replace: true });
-    }).catch((err) => {
-      if (err?.response?.status !== 403) {
-        // unknown error — stay put
-      }
-    }).finally(() => setChecking(false));
+    axios.get('/api/v1/setup/check')
+      .then(() => setNeedsSetup(true))
+      .catch(() => {})
+      .finally(() => setChecking(false));
   }, []); // eslint-disable-line react-hooks/exhaustive-deps
 
-  if (checking) {
-    return <Spin style={{ display: 'block', margin: '80px auto' }} />;
-  }
+  if (checking) return <Spin style={{ display: 'block', margin: '80px auto' }} />;
+  if (needsSetup) return <Navigate to="/setup" replace />;
   return <Navigate to="/dashboard" replace />;
 }
 
