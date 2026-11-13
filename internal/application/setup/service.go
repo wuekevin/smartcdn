@@ -4,7 +4,6 @@ import (
 	"context"
 	"database/sql"
 	"fmt"
-	"net"
 	"os"
 	"runtime"
 	"strings"
@@ -32,17 +31,21 @@ func (s *Service) IsInstalled() bool {
 	return err == nil
 }
 
-// Check runs all environment checks and returns a report.
+// Check runs environment prerequisite checks.
+// MySQL and Redis are only probed when the caller supplies DSN/addr;
+// if omitted they are marked pending (not a failure) so step-1 of the
+// wizard can pass before the user has entered connection details.
+// Port availability is not checked here — the server is already running
+// on its configured port, so the check would always fail.
 func (s *Service) Check(ctx context.Context, dbDSN, redisAddr string) entity.SetupCheckResult {
-	result := entity.SetupCheckResult{
+	return entity.SetupCheckResult{
 		GoVer: checkGoVersion(),
 		Perms: checkFilePermissions(),
 		Clock: checkClock(),
-		Ports: checkPorts([]string{"8080"}),
+		Ports: entity.CheckItem{Name: "ports", Status: "ok", Message: "server is running"},
+		MySQL: checkMySQL(dbDSN),
+		Redis: checkRedis(ctx, redisAddr),
 	}
-	result.MySQL = checkMySQL(dbDSN)
-	result.Redis = checkRedis(ctx, redisAddr)
-	return result
 }
 
 // Complete finalizes the installation: runs migrations, creates admin user, writes install.lock.
@@ -100,20 +103,10 @@ func checkClock() entity.CheckItem {
 	return entity.CheckItem{Name: "clock", Status: "ok", Message: now.Format(time.RFC3339)}
 }
 
-func checkPorts(ports []string) entity.CheckItem {
-	for _, port := range ports {
-		ln, err := net.Listen("tcp", ":"+port)
-		if err != nil {
-			return entity.CheckItem{Name: "ports", Status: "fail", Message: fmt.Sprintf("port %s is in use", port)}
-		}
-		ln.Close()
-	}
-	return entity.CheckItem{Name: "ports", Status: "ok"}
-}
 
 func checkMySQL(dsn string) entity.CheckItem {
 	if dsn == "" {
-		return entity.CheckItem{Name: "mysql", Status: "fail", Message: "no DSN provided"}
+		return entity.CheckItem{Name: "mysql", Status: "ok", Message: "not yet configured"}
 	}
 	db, err := sql.Open("mysql", dsn)
 	if err != nil {
@@ -128,7 +121,7 @@ func checkMySQL(dsn string) entity.CheckItem {
 
 func checkRedis(ctx context.Context, addr string) entity.CheckItem {
 	if addr == "" {
-		return entity.CheckItem{Name: "redis", Status: "fail", Message: "no address provided"}
+		return entity.CheckItem{Name: "redis", Status: "ok", Message: "not yet configured"}
 	}
 	rdb := redis.NewClient(&redis.Options{Addr: addr})
 	defer rdb.Close()
