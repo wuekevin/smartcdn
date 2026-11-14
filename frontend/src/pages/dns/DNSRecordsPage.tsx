@@ -13,6 +13,19 @@ interface DNSRecord {
 
 const RECORD_TYPES = ['A', 'AAAA', 'CNAME', 'MX', 'TXT', 'NS', 'SRV', 'CAA'];
 
+const DNS_LINES: { value: string; label: string }[] = [
+  { value: 'default',  label: '默认' },
+  { value: 'telecom',  label: '电信' },
+  { value: 'unicom',   label: '联通' },
+  { value: 'mobile',   label: '移动' },
+  { value: 'oversea',  label: '境外' },
+  { value: 'internal', label: '内网' },
+  { value: 'edu',      label: '教育网' },
+  { value: 'baidu',    label: '百度蜘蛛' },
+  { value: 'search',   label: '搜索引擎' },
+];
+const LINE_LABEL: Record<string, string> = Object.fromEntries(DNS_LINES.map(l => [l.value, l.label]));
+
 export default function DNSRecordsPage() {
   const qc = useQueryClient();
   const [domainId, setDomainId] = useState<number>(0);
@@ -97,7 +110,11 @@ export default function DNSRecordsPage() {
         <InputNumber min={1} max={86400} />
       </Form.Item>
       <Form.Item label="线路" field="line" initialValue="default">
-        <Input placeholder="default" />
+        <Select showSearch>
+          {DNS_LINES.map(l => (
+            <Select.Option key={l.value} value={l.value}>{l.label}</Select.Option>
+          ))}
+        </Select>
       </Form.Item>
     </Form>
   );
@@ -108,7 +125,10 @@ export default function DNSRecordsPage() {
     { title: '类型', dataIndex: 'type', width: 80 },
     { title: '值', dataIndex: 'value' },
     { title: 'TTL', dataIndex: 'ttl', width: 80 },
-    { title: '线路', dataIndex: 'line', width: 100 },
+    {
+      title: '线路', dataIndex: 'line', width: 100,
+      render: (v: string) => LINE_LABEL[v] ?? v,
+    },
     {
       title: '外部', dataIndex: 'is_external',
       render: (v: boolean) => <Tag color={v ? 'orange' : 'gray'}>{v ? '外部' : '托管'}</Tag>,
