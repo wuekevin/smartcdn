@@ -1,5 +1,4 @@
 -- +goose Up
--- +goose StatementBegin
 
 -- Time-series metric data points
 CREATE TABLE metrics (
@@ -73,12 +72,9 @@ CREATE TABLE alerts (
     KEY idx_alert_status (status, fired_at)
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
 
--- +goose StatementEnd
 
 -- +goose Down
--- +goose StatementBegin
 DROP TABLE IF EXISTS alerts;
 DROP TABLE IF EXISTS alert_channels;
 DROP TABLE IF EXISTS alert_rules;
 DROP TABLE IF EXISTS metrics;
--- +goose StatementEnd

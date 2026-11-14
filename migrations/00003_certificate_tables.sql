@@ -1,5 +1,4 @@
 -- +goose Up
--- +goose StatementBegin
 
 -- ACME accounts (one per email/provider)
 CREATE TABLE acme_accounts (
@@ -53,11 +52,8 @@ CREATE TABLE cert_deploy_targets (
     KEY idx_deploy_cert (certificate_id)
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
 
--- +goose StatementEnd
 
 -- +goose Down
--- +goose StatementBegin
 DROP TABLE IF EXISTS cert_deploy_targets;
 DROP TABLE IF EXISTS certificates;
 DROP TABLE IF EXISTS acme_accounts;
--- +goose StatementEnd

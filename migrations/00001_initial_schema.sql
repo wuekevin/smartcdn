@@ -1,5 +1,4 @@
 -- +goose Up
--- +goose StatementBegin
 
 CREATE TABLE IF NOT EXISTS users (
     id BIGINT UNSIGNED NOT NULL AUTO_INCREMENT,
@@ -97,10 +96,8 @@ INSERT IGNORE INTO roles (name, description, is_system) VALUES
     ('dns_cdn_operator', 'DNS/CDN 运营管理员（操作）', 1),
     ('readonly_auditor', '只读审计员（只读）', 1);
 
--- +goose StatementEnd
 
 -- +goose Down
--- +goose StatementBegin
 DROP TABLE IF EXISTS dns_accounts;
 DROP TABLE IF EXISTS dns_providers;
 DROP TABLE IF EXISTS audit_logs;
@@ -108,4 +105,3 @@ DROP TABLE IF EXISTS role_permissions;
 DROP TABLE IF EXISTS user_roles;
 DROP TABLE IF EXISTS roles;
 DROP TABLE IF EXISTS users;
--- +goose StatementEnd

@@ -1,5 +1,4 @@
 -- +goose Up
--- +goose StatementBegin
 
 -- DAG workflow templates
 CREATE TABLE workflow_templates (
@@ -53,11 +52,8 @@ CREATE TABLE workflow_node_runs (
     UNIQUE KEY ux_wf_node_run_node (run_id, node_id)
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
 
--- +goose StatementEnd
 
 -- +goose Down
--- +goose StatementBegin
 DROP TABLE IF EXISTS workflow_node_runs;
 DROP TABLE IF EXISTS workflow_runs;
 DROP TABLE IF EXISTS workflow_templates;
--- +goose StatementEnd

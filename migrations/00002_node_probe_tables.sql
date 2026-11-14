@@ -1,5 +1,4 @@
 -- +goose Up
--- +goose StatementBegin
 
 -- CDN Nodes (self-hosted reverse-proxy nodes)
 CREATE TABLE cdn_nodes (
@@ -142,10 +141,8 @@ CREATE TABLE scheduler_circuit_breakers (
     UNIQUE KEY ux_cb_domain_isp (domain_id, isp)
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
 
--- +goose StatementEnd
 
 -- +goose Down
--- +goose StatementBegin
 DROP TABLE IF EXISTS scheduler_circuit_breakers;
 DROP TABLE IF EXISTS ip_candidates;
 DROP TABLE IF EXISTS probe_results;
@@ -155,4 +152,3 @@ DROP TABLE IF EXISTS node_pools;
 DROP TABLE IF EXISTS node_tasks;
 DROP TABLE IF EXISTS node_agents;
 DROP TABLE IF EXISTS cdn_nodes;
--- +goose StatementEnd
