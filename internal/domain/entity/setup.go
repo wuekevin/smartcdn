@@ -29,5 +29,6 @@ type SetupCompleteInput struct {
 	RedisDB       int    `json:"redis_db"`
 	AdminUser  string `json:"admin_username" binding:"required"`
 	AdminPass  string `json:"admin_password" binding:"required,min=8"`
+	EncryptKey string `json:"encrypt_key" binding:"required"`
 	SiteURL    string `json:"site_url" binding:"required"`
 }

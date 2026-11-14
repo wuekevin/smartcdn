@@ -16,6 +16,7 @@ import (
 	"go.uber.org/zap"
 
 	"github.com/wuekevin/smartcdn/internal/application/auth"
+	appconfig "github.com/wuekevin/smartcdn/internal/infra/config"
 	certapp "github.com/wuekevin/smartcdn/internal/application/certificate"
 	cdnsvc "github.com/wuekevin/smartcdn/internal/application/cdn"
 	domainsvc "github.com/wuekevin/smartcdn/internal/application/domain"
@@ -39,10 +40,6 @@ import (
 )
 
 func main() {
-	if err := crypto.Init(); err != nil {
-		fmt.Fprintln(os.Stderr, "FATAL:", err)
-		os.Exit(1)
-	}
 	if err := logger.Init(); err != nil {
 		fmt.Fprintln(os.Stderr, "FATAL: logger init:", err)
 		os.Exit(1)
@@ -66,13 +63,19 @@ func main() {
 	if !setupSvc.IsInstalled() {
 		log.Info("install.lock not found — running in setup mode")
 		api.RegisterSPA(r, frontendFS())
-		startServer(r, log)
+		startServer(r, "8080", log)
 		return
 	}
 
 	// --- Full application mode ---
-	gdb := mustConnectDB(log)
-	rdb := mustConnectRedis(log)
+	cfg := mustLoadConfig(log)
+
+	if err := crypto.InitWithKey(cfg.EncryptKey); err != nil {
+		log.Fatal("encryption key error", zap.Error(err))
+	}
+
+	gdb := mustConnectDB(cfg, log)
+	rdb := mustConnectRedis(cfg, log)
 
 	runMigrations(gdb, log)
 
@@ -177,13 +180,26 @@ func main() {
 	// Background: periodic alert evaluation
 	go runAlertEvaluator(monitorSvc, log)
 
-	startServer(r, log)
+	startServer(r, cfg.Port, log)
 }
 
-func mustConnectDB(log *zap.Logger) *gorm.DB {
-	dsn := os.Getenv("DB_DSN")
+func mustLoadConfig(log *zap.Logger) *appconfig.AppConfig {
+	cfg, err := appconfig.Load()
+	if err != nil {
+		log.Fatal("load config", zap.Error(err))
+	}
+	return cfg
+}
+
+func mustConnectDB(cfg *appconfig.AppConfig, log *zap.Logger) *gorm.DB {
+	var dsn string
+	if cfg.Database.Host != "" {
+		dsn = cfg.Database.DSN()
+	} else {
+		dsn = appconfig.DSNFromEnv()
+	}
 	if dsn == "" {
-		log.Fatal("DB_DSN environment variable is required")
+		log.Fatal("database not configured: run the setup wizard or set DB_DSN")
 	}
 	gdb, err := infradb.New(infradb.Config{DSN: dsn})
 	if err != nil {
@@ -192,12 +208,20 @@ func mustConnectDB(log *zap.Logger) *gorm.DB {
 	return gdb
 }
 
-func mustConnectRedis(log *zap.Logger) *redis.Client {
-	rawURL := os.Getenv("REDIS_URL")
-	if rawURL == "" {
-		rawURL = "redis://localhost:6379/0"
+func mustConnectRedis(cfg *appconfig.AppConfig, log *zap.Logger) *redis.Client {
+	var addr, pass string
+	var db int
+	if cfg.Redis.Addr != "" {
+		addr = cfg.Redis.Addr
+		pass = cfg.Redis.Password
+		db = cfg.Redis.DB
+	} else {
+		rawURL := appconfig.RedisURLFromEnv()
+		if rawURL == "" {
+			rawURL = "redis://localhost:6379/0"
+		}
+		addr, pass, db = parseRedisURL(rawURL)
 	}
-	addr, pass, db := parseRedisURL(rawURL)
 	rdb, err := infraredis.New(infraredis.Config{Addr: addr, Password: pass, DB: db})
 	if err != nil {
 		log.Fatal("Redis connect failed", zap.Error(err))
@@ -247,10 +271,9 @@ func runAlertEvaluator(svc *monapp.Service, log *zap.Logger) {
 	}
 }
 
-func startServer(r *gin.Engine, log *zap.Logger) {
-	port := os.Getenv("PORT")
-	if port == "" {
-		port = "8080"
+func startServer(r *gin.Engine, port string, log *zap.Logger) {
+	if p := os.Getenv("PORT"); p != "" {
+		port = p
 	}
 	log.Info("listening", zap.String("port", port))
 	if err := r.Run(":" + port); err != nil {

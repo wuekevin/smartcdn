@@ -8,8 +8,9 @@ dist/
 .env.*
 !.env.example
 
-# Install lock (tracked separately per deployment)
+# Install lock and runtime config (deployment-specific, may contain credentials)
 install.lock
+config/config.yaml
 
 # Go
 vendor/

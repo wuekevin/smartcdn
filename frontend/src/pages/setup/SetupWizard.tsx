@@ -319,7 +319,7 @@ export default function SetupWizard() {
               <div style={{ marginTop: 16, textAlign: 'left', background: '#f5f5f5', borderRadius: 6, padding: '16px 24px', maxWidth: 480, margin: '16px auto 0' }}>
                 <Text bold>下一步操作：</Text>
                 <ol style={{ marginTop: 8, paddingLeft: 20 }}>
-                  <li>在服务器设置环境变量 <code>DB_DSN</code>、<code>REDIS_URL</code> 和 <code>SMARTCDN_ENCRYPT_KEY</code></li>
+                  <li>配置已保存至服务器 <code>config/config.yaml</code>，请妥善保管</li>
                   <li>重启 SmartCDN 服务（<code>systemctl restart smartcdn</code>）</li>
                   <li>访问 <code>/login</code> 使用管理员账户登录</li>
                 </ol>

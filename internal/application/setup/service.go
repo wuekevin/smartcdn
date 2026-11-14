@@ -15,6 +15,7 @@ import (
 	"gorm.io/gorm"
 
 	"github.com/wuekevin/smartcdn/internal/domain/entity"
+	appconfig "github.com/wuekevin/smartcdn/internal/infra/config"
 	"github.com/wuekevin/smartcdn/internal/infra/logger"
 )
 
@@ -73,7 +74,10 @@ func (s *Service) Complete(ctx context.Context, input entity.SetupCompleteInput)
 		return fmt.Errorf("creating admin user: %w", err)
 	}
 
-	if err := writeLock(input); err != nil {
+	if err := writeConfig(input); err != nil {
+		return fmt.Errorf("writing config: %w", err)
+	}
+	if err := writeLock(); err != nil {
 		return fmt.Errorf("writing install.lock: %w", err)
 	}
 
@@ -180,13 +184,28 @@ func createAdminUser(db *gorm.DB, username, password string) error {
 	).Error
 }
 
-func writeLock(input entity.SetupCompleteInput) error {
-	content := fmt.Sprintf(
-		"installed=%s\nsite_url=%s\nredis_addr=%s\nredis_db=%d\n",
-		time.Now().Format(time.RFC3339),
-		input.SiteURL,
-		input.RedisAddr,
-		input.RedisDB,
-	)
+func writeConfig(input entity.SetupCompleteInput) error {
+	cfg := &appconfig.AppConfig{
+		Database: appconfig.DatabaseConfig{
+			Host:     input.DBHost,
+			Port:     input.DBPort,
+			Name:     input.DBName,
+			User:     input.DBUser,
+			Password: input.DBPassword,
+		},
+		Redis: appconfig.RedisConfig{
+			Addr:     input.RedisAddr,
+			Password: input.RedisPassword,
+			DB:       input.RedisDB,
+		},
+		EncryptKey: input.EncryptKey,
+		SiteURL:    input.SiteURL,
+		Port:       "8080",
+	}
+	return appconfig.Write(cfg)
+}
+
+func writeLock() error {
+	content := fmt.Sprintf("installed=%s\n", time.Now().Format(time.RFC3339))
 	return os.WriteFile(installLockPath, []byte(content), 0600)
 }

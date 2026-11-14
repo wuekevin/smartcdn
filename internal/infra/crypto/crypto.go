@@ -22,17 +22,23 @@ var (
 )
 
 // Init loads the encryption key from SMARTCDN_ENCRYPT_KEY env var (32-byte hex).
-// Must be called before Encrypt/Decrypt.
+// Must be called before Encrypt/Decrypt. Prefer InitWithKey when the key is
+// already loaded from config.yaml.
 func Init() error {
+	return InitWithKey(os.Getenv("SMARTCDN_ENCRYPT_KEY"))
+}
+
+// InitWithKey initialises the global encryption key from a hex string.
+// Calling it more than once is a no-op (sync.Once).
+func InitWithKey(hexKey string) error {
 	initOnce.Do(func() {
-		raw := os.Getenv("SMARTCDN_ENCRYPT_KEY")
-		if raw == "" {
-			initErr = fmt.Errorf("SMARTCDN_ENCRYPT_KEY is required (32-byte hex)")
+		if hexKey == "" {
+			initErr = fmt.Errorf("encryption key is required (32-byte hex string)")
 			return
 		}
-		key, err := hex.DecodeString(raw)
+		key, err := hex.DecodeString(hexKey)
 		if err != nil || len(key) != 32 {
-			initErr = fmt.Errorf("SMARTCDN_ENCRYPT_KEY must be a 64-character hex string (32 bytes)")
+			initErr = fmt.Errorf("encryption key must be a 64-character hex string (32 bytes)")
 			return
 		}
 		globalKey = key
