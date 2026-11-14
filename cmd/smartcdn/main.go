@@ -252,17 +252,18 @@ func runMigrations(gdb *gorm.DB, log *zap.Logger) {
 	}
 	log.Info("database migrations applied")
 
-	// AutoMigrate creates/updates all tables to match entity structs.
-	// Safe to run repeatedly; only adds missing columns, never drops.
+	// AutoMigrate creates/updates tables that are NOT fully managed by goose.
+	// Tables with nullable JSON string fields (capabilities_json, step_logs) are
+	// excluded because GORM would generate ALTER ... NOT NULL DEFAULT '' which
+	// MySQL 8.0 rejects for JSON columns (Error 3140). Those tables are managed
+	// entirely by the goose SQL migrations above.
 	if err := gdb.AutoMigrate(
 		&entity.User{},
-		&entity.DNSAccount{},
 		&entity.Domain{}, &entity.DNSRecord{}, &entity.DNSSnapshot{},
 		&entity.CDNAccount{}, &entity.CDNDomain{}, &entity.CDNCustomHostname{},
 		&entity.CDNNode{}, &entity.NodeAgent{}, &entity.NodeTask{}, &entity.NodePool{}, &entity.NodePoolMember{},
 		&entity.ProbeAgent{}, &entity.ProbeResult{}, &entity.IPCandidate{}, &entity.SchedulerCircuitBreaker{},
-		&entity.PublishJob{},
-		&entity.MigrationJob{}, &entity.MultiDNSConfig{},
+		&entity.MultiDNSConfig{},
 	); err != nil {
 		log.Fatal("auto-migrate", zap.Error(err))
 	}
