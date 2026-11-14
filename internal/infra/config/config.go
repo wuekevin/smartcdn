@@ -18,6 +18,16 @@ type AppConfig struct {
 	EncryptKey string         `yaml:"encrypt_key"`
 	SiteURL    string         `yaml:"site_url"`
 	Port       string         `yaml:"port"`
+
+	// Server behaviour
+	// mode: "release" (default) or "debug" — controls Gin log verbosity
+	Mode string `yaml:"mode"`
+	// log_level: "debug" | "info" (default) | "warn" | "error"
+	LogLevel string `yaml:"log_level"`
+	// trusted_proxies: list of reverse-proxy IP/CIDR strings.
+	// Leave empty to trust only loopback (127.0.0.1, ::1).
+	// Set to ["*"] to trust all (not recommended in production).
+	TrustedProxies []string `yaml:"trusted_proxies"`
 }
 
 type DatabaseConfig struct {

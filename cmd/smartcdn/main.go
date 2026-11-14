@@ -42,6 +42,7 @@ func main() {
 	portFlag := flag.String("port", "", "HTTP listen port (overrides PORT env and config.yaml)")
 	flag.Parse()
 
+	// Setup mode: logger at info level, gin in debug for easier troubleshooting.
 	if err := logger.Init(); err != nil {
 		fmt.Fprintln(os.Stderr, "FATAL: logger init:", err)
 		os.Exit(1)
@@ -51,19 +52,14 @@ func main() {
 	log := logger.Named("main")
 	log.Info("SmartCDN starting")
 
-	r := gin.New()
-	r.Use(gin.Recovery())
-	r.Use(api.RequestIDMiddleware())
-	r.Use(api.SecurityHeadersMiddleware())
-
-	v1 := r.Group("/api/v1")
-
 	setupSvc := setup.NewService()
-	setupHandler := api.NewSetupHandler(setupSvc)
-	setupHandler.RegisterSetup(v1)
 
 	if !setupSvc.IsInstalled() {
 		log.Info("install.lock not found — running in setup mode")
+		gin.SetMode(gin.DebugMode)
+		r := buildRouter()
+		setupHandler := api.NewSetupHandler(setupSvc)
+		setupHandler.RegisterSetup(r.Group("/api/v1"))
 		api.RegisterSPA(r, frontendFS())
 		startServer(r, resolvePort(*portFlag, setupPort()), log)
 		return
@@ -72,12 +68,31 @@ func main() {
 	// --- Full application mode ---
 	cfg := mustLoadConfig(log)
 
+	// Re-init logger at the level from config.yaml.
+	if err := logger.InitWithLevel(cfg.LogLevel); err != nil {
+		log.Fatal("logger re-init", zap.Error(err))
+	}
+	log = logger.Named("main")
+
+	// Apply gin mode from config.yaml (default: release).
+	ginMode := cfg.Mode
+	if ginMode == "" {
+		ginMode = gin.ReleaseMode
+	}
+	gin.SetMode(ginMode)
+
 	if err := crypto.InitWithKey(cfg.EncryptKey); err != nil {
 		log.Fatal("encryption key error", zap.Error(err))
 	}
 
 	gdb := mustConnectDB(cfg, log)
 	rdb := mustConnectRedis(cfg, log)
+
+	r := buildRouter()
+	applyTrustedProxies(r, cfg.TrustedProxies, log)
+	setupHandler := api.NewSetupHandler(setupSvc)
+	v1 := r.Group("/api/v1")
+	setupHandler.RegisterSetup(v1)
 
 	runMigrations(gdb, log)
 
@@ -236,6 +251,30 @@ func runAlertEvaluator(svc *monapp.Service, log *zap.Logger) {
 	defer ticker.Stop()
 	for range ticker.C {
 		svc.EvaluateAll(context.Background())
+	}
+}
+
+func buildRouter() *gin.Engine {
+	r := gin.New()
+	r.Use(gin.Recovery())
+	r.Use(api.RequestIDMiddleware())
+	r.Use(api.SecurityHeadersMiddleware())
+	return r
+}
+
+// applyTrustedProxies configures gin's trusted proxy list.
+// Empty slice → trust only loopback (safe default).
+// ["*"] → trust all (not recommended).
+func applyTrustedProxies(r *gin.Engine, proxies []string, log *zap.Logger) {
+	if len(proxies) == 0 {
+		// Trust only loopback by default — silences the "trust all proxies" warning.
+		if err := r.SetTrustedProxies([]string{"127.0.0.1", "::1"}); err != nil {
+			log.Warn("set trusted proxies", zap.Error(err))
+		}
+		return
+	}
+	if err := r.SetTrustedProxies(proxies); err != nil {
+		log.Warn("set trusted proxies", zap.Error(err))
 	}
 }
 

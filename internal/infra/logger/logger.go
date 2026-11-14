@@ -13,7 +13,12 @@ var global *zap.Logger
 // Init initializes the global structured logger.
 // Log level is controlled by LOG_LEVEL env var (debug/info/warn/error); defaults to info.
 func Init() error {
-	level := parseLevel(os.Getenv("LOG_LEVEL"))
+	return InitWithLevel(os.Getenv("LOG_LEVEL"))
+}
+
+// InitWithLevel initializes the global logger at the given level string.
+func InitWithLevel(levelStr string) error {
+	level := parseLevel(levelStr)
 
 	encoderCfg := zapcore.EncoderConfig{
 		TimeKey:        "timestamp",

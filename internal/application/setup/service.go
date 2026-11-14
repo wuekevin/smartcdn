@@ -198,9 +198,12 @@ func writeConfig(input entity.SetupCompleteInput) error {
 			Password: input.RedisPassword,
 			DB:       input.RedisDB,
 		},
-		EncryptKey: input.EncryptKey,
-		SiteURL:    input.SiteURL,
-		Port:       input.Port,
+		EncryptKey:     input.EncryptKey,
+		SiteURL:        input.SiteURL,
+		Port:           input.Port,
+		Mode:           "release",
+		LogLevel:       "info",
+		TrustedProxies: []string{},
 	}
 	return appconfig.Write(cfg)
 }
