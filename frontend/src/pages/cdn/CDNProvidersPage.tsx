@@ -13,6 +13,7 @@ interface CDNAccount {
 const CDN_PROVIDERS = [
   { label: 'Cloudflare', value: 'cloudflare', fields: ['api_token'] },
   { label: '阿里云 CDN', value: 'aliyun_cdn', fields: ['access_key_id', 'access_key_secret'] },
+  { label: '腾讯云 EdgeOne', value: 'tencent_eo', fields: ['secret_id', 'secret_key', 'zone_id'] },
 ];
 
 export default function CDNProvidersPage() {

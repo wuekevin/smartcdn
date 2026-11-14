@@ -1,6 +1,6 @@
 import { useState } from 'react';
 import {
-  Button, Card, Table, Tag, Typography, Space, Tooltip, Message, Modal, Form, Input, Select, Switch,
+  Button, Card, Table, Tag, Typography, Space, Tooltip, Message, Modal, Form, Input, Select, Switch, Popconfirm,
 } from '@arco-design/web-react';
 import { IconPlus, IconRefresh } from '@arco-design/web-react/icon';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
@@ -70,6 +70,12 @@ export default function CertificatesPage() {
     onError: () => Message.error('操作失败'),
   });
 
+  const deleteMut = useMutation({
+    mutationFn: (id: number) => client.delete(`/certificates/${id}`),
+    onSuccess: () => { qc.invalidateQueries({ queryKey: ['certificates'] }); Message.success('证书已删除'); },
+    onError: () => Message.error('删除失败'),
+  });
+
   const domains: Domain[] = domainsData?.items ?? [];
   const dnsAccounts: DNSAccount[] = dnsAccountsData?.items ?? [];
 
@@ -117,6 +123,9 @@ export default function CertificatesPage() {
       title: '操作', render: (_: unknown, row: Certificate) => (
         <Space>
           <Button size="mini" onClick={() => retriggerMut.mutate(row.id)}>重签</Button>
+          <Popconfirm title="确认删除此证书？" onOk={() => deleteMut.mutate(row.id)}>
+            <Button size="mini" type="text" status="danger">删除</Button>
+          </Popconfirm>
         </Space>
       ),
     },

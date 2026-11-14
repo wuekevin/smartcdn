@@ -450,6 +450,53 @@ func (s *Service) PublishIPForISP(ctx context.Context, domainID uint64, isp, ip 
 	return err
 }
 
+// SyncFromProvider fetches all DNS records from the upstream provider and
+// replaces the locally stored records for the domain. Existing local records
+// are deleted first; the provider-returned records are stored with their
+// provider-side IDs so subsequent edits can reach the provider.
+func (s *Service) SyncFromProvider(ctx context.Context, domainID uint64) ([]RecordView, error) {
+	d, err := s.domains.FindByID(ctx, domainID)
+	if err != nil {
+		return nil, ErrDomainNotFound
+	}
+	p, err := s.loadProvider(ctx, d)
+	if err != nil {
+		return nil, fmt.Errorf("load provider: %w", err)
+	}
+	zoneID, err := s.getZoneID(ctx, p, d.Name)
+	if err != nil {
+		return nil, err
+	}
+	providerRecs, err := p.ListRecords(ctx, zoneID)
+	if err != nil {
+		return nil, fmt.Errorf("list provider records: %w", err)
+	}
+	if err := s.records.DeleteByDomain(ctx, domainID); err != nil {
+		return nil, fmt.Errorf("clear local records: %w", err)
+	}
+	views := make([]RecordView, 0, len(providerRecs))
+	for _, pr := range providerRecs {
+		rec := &entity.DNSRecord{
+			DomainID:   domainID,
+			ProviderID: pr.ID,
+			Host:       pr.Host,
+			Type:       pr.Type,
+			Value:      pr.Value,
+			TTL:        pr.TTL,
+			Line:       pr.Line,
+			Priority:   pr.Priority,
+		}
+		if rec.TTL <= 0 {
+			rec.TTL = 600
+		}
+		if err := s.records.Create(ctx, rec); err != nil {
+			continue
+		}
+		views = append(views, *recordToView(rec))
+	}
+	return views, nil
+}
+
 // --- View converters ---
 
 func domainToView(d *entity.Domain) *DomainView {

@@ -35,6 +35,9 @@ func (h *DomainHandler) RegisterRoutes(r *gin.RouterGroup) {
 	// Snapshots
 	g.POST("/:id/snapshots", h.CreateSnapshot)
 	g.GET("/:id/snapshots", h.ListSnapshots)
+
+	// Sync from provider
+	g.POST("/:id/sync-from-provider", h.SyncFromProvider)
 }
 
 // POST /api/v1/domains
@@ -255,6 +258,25 @@ func (h *DomainHandler) ListSnapshots(c *gin.Context) {
 		return
 	}
 	c.JSON(http.StatusOK, gin.H{"items": views})
+}
+
+// POST /api/v1/domains/:id/sync-from-provider
+func (h *DomainHandler) SyncFromProvider(c *gin.Context) {
+	domainID, err := parseUint64Param(c, "id")
+	if err != nil {
+		c.JSON(http.StatusBadRequest, gin.H{"error": "invalid domain id"})
+		return
+	}
+	views, err := h.svc.SyncFromProvider(c.Request.Context(), domainID)
+	if err != nil {
+		if err == domainsvc.ErrDomainNotFound {
+			c.JSON(http.StatusNotFound, gin.H{"error": "domain not found"})
+			return
+		}
+		c.JSON(http.StatusInternalServerError, gin.H{"error": err.Error()})
+		return
+	}
+	c.JSON(http.StatusOK, gin.H{"items": views, "count": len(views)})
 }
 
 // --- helpers ---

@@ -27,7 +27,26 @@ func NewAgentHandler(nodeSvc *nodeapp.Service, probeSvc *probeapp.Service) *Agen
 // and IP candidates. These are mounted on the JWT-protected router.
 func (h *AgentHandler) RegisterManagementRoutes(r *gin.RouterGroup) {
 	r.GET("/probe-agents", h.ListProbeAgents)
+	r.DELETE("/probe-agents/:id", h.DeleteProbeAgent)
 	r.GET("/ip-candidates", h.ListIPCandidates)
+}
+
+// DELETE /api/v1/probe-agents/:id — deactivates (soft-deletes) a probe agent.
+func (h *AgentHandler) DeleteProbeAgent(c *gin.Context) {
+	id, err := parseUint64Param(c, "id")
+	if err != nil {
+		c.JSON(http.StatusBadRequest, gin.H{"error": "invalid id"})
+		return
+	}
+	if err := h.probeSvc.DeactivateAgent(c.Request.Context(), id); err != nil {
+		if err == probeapp.ErrAgentNotFound {
+			c.JSON(http.StatusNotFound, gin.H{"error": "probe agent not found"})
+			return
+		}
+		c.JSON(http.StatusInternalServerError, gin.H{"error": err.Error()})
+		return
+	}
+	c.JSON(http.StatusNoContent, nil)
 }
 
 // GET /api/v1/probe-agents

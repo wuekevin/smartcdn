@@ -88,6 +88,19 @@ func (s *Service) GetAgent(ctx context.Context, id uint64) (*AgentView, error) {
 	return toAgentView(a), nil
 }
 
+// DeactivateAgent soft-deletes a probe agent by marking it inactive.
+func (s *Service) DeactivateAgent(ctx context.Context, id uint64) error {
+	a, err := s.agents.FindByID(ctx, id)
+	if err != nil {
+		if errors.Is(err, repo.ErrNotFound) {
+			return ErrAgentNotFound
+		}
+		return err
+	}
+	a.IsActive = false
+	return s.agents.Update(ctx, a)
+}
+
 func (s *Service) ListAgents(ctx context.Context, afterID uint64, limit int) ([]AgentView, error) {
 	as, err := s.agents.List(ctx, afterID, limit)
 	if err != nil {

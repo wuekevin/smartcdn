@@ -6,8 +6,9 @@ import "context"
 type CDNProviderType string
 
 const (
-	CDNProviderCloudflare CDNProviderType = "cloudflare"
-	CDNProviderAliyun     CDNProviderType = "aliyun_cdn"
+	CDNProviderCloudflare  CDNProviderType = "cloudflare"
+	CDNProviderAliyun      CDNProviderType = "aliyun_cdn"
+	CDNProviderTencentEO   CDNProviderType = "tencent_eo"
 )
 
 // CDNZone represents a CDN-accelerated domain.

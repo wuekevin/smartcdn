@@ -2,7 +2,7 @@ import { useState } from 'react';
 import {
   Button, Card, Table, Tag, Typography, Space, Popconfirm, Message, Modal, Form, Input, Select, InputNumber,
 } from '@arco-design/web-react';
-import { IconPlus, IconRefresh, IconEdit } from '@arco-design/web-react/icon';
+import { IconPlus, IconRefresh, IconEdit, IconSync } from '@arco-design/web-react/icon';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import client from '../../api/client';
 
@@ -64,6 +64,18 @@ export default function DNSRecordsPage() {
     mutationFn: (id: number) => client.delete(`/domains/${domainId}/records/${id}`),
     onSuccess: () => { qc.invalidateQueries({ queryKey: ['records', domainId] }); Message.success('已删除'); },
     onError: () => Message.error('删除失败'),
+  });
+
+  const syncMut = useMutation({
+    mutationFn: () => client.post(`/domains/${domainId}/sync-from-provider`),
+    onSuccess: (res) => {
+      qc.invalidateQueries({ queryKey: ['records', domainId] });
+      Message.success(`已从服务商同步 ${res.data?.count ?? 0} 条记录`);
+    },
+    onError: (e: unknown) => {
+      const msg = (e as { response?: { data?: { error?: string } } })?.response?.data?.error;
+      Message.error(msg || '同步失败');
+    },
   });
 
   const domains: Domain[] = domainsData?.items ?? [];
@@ -131,6 +143,13 @@ export default function DNSRecordsPage() {
               {domains.map(d => <Select.Option key={d.id} value={d.id}>{d.name}</Select.Option>)}
             </Select>
             <Button icon={<IconRefresh />} onClick={() => qc.invalidateQueries({ queryKey: ['records', domainId] })} />
+            <Popconfirm
+              title="将从服务商拉取全部记录并覆盖本地，确认继续？"
+              onOk={() => syncMut.mutate()}
+              disabled={domainId === 0}
+            >
+              <Button icon={<IconSync />} disabled={domainId === 0} loading={syncMut.isPending}>从服务商同步</Button>
+            </Popconfirm>
             <Button type="primary" icon={<IconPlus />} disabled={domainId === 0} onClick={() => setCreateVisible(true)}>
               添加记录
             </Button>
