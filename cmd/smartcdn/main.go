@@ -36,6 +36,7 @@ import (
 	infraredis "github.com/wuekevin/smartcdn/internal/infra/redis"
 	"github.com/wuekevin/smartcdn/internal/infra/pubsub"
 	"github.com/wuekevin/smartcdn/internal/infra/repo"
+	"github.com/wuekevin/smartcdn/migrations"
 )
 
 func main() {
@@ -236,11 +237,10 @@ func runMigrations(gdb *gorm.DB, log *zap.Logger) {
 	if err := goose.SetDialect("mysql"); err != nil {
 		log.Fatal("goose set dialect", zap.Error(err))
 	}
-	migrationsDir := "migrations"
-	if d := os.Getenv("MIGRATIONS_DIR"); d != "" {
-		migrationsDir = d
-	}
-	if err := goose.Up(sqlDB, migrationsDir); err != nil {
+	// Use embedded SQL files so the binary is self-contained.
+	goose.SetBaseFS(migrations.FS)
+	defer goose.SetBaseFS(nil)
+	if err := goose.Up(sqlDB, "."); err != nil {
 		log.Fatal("goose up", zap.Error(err))
 	}
 	log.Info("database migrations applied")
