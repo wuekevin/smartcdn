@@ -157,51 +157,50 @@ export default function SetupWizard() {
             </div>
           )}
 
-          {/* Steps 2–7: Configuration Form */}
+          {/* Steps 2–7: Configuration Form
+              All step sections stay mounted once the form appears so that
+              Arco Design Form does not lose field values on step change.
+              Hidden steps are rendered with display:none. */}
           {current >= 2 && current <= 7 && (
             <Form form={form} layout="vertical" autoComplete="off">
 
               {/* Step 2: 数据库配置 */}
-              {current === 2 && (
-                <>
-                  <Title heading={5}>数据库配置</Title>
-                  <Form.Item label="主机" field="db_host" rules={[{ required: true }]}>
-                    <Input placeholder="127.0.0.1" />
-                  </Form.Item>
-                  <Form.Item label="端口" field="db_port" initialValue={3306} rules={[{ required: true }]}>
-                    <Input type="number" />
-                  </Form.Item>
-                  <Form.Item label="数据库名" field="db_name" rules={[{ required: true }]}>
-                    <Input placeholder="smartcdn" />
-                  </Form.Item>
-                  <Form.Item label="用户名" field="db_user" rules={[{ required: true }]}>
-                    <Input />
-                  </Form.Item>
-                  <Form.Item label="密码" field="db_password">
-                    <Input.Password />
-                  </Form.Item>
-                </>
-              )}
+              <div style={{ display: current === 2 ? undefined : 'none' }}>
+                <Title heading={5}>数据库配置</Title>
+                <Form.Item label="主机" field="db_host" rules={[{ required: true }]}>
+                  <Input placeholder="127.0.0.1" />
+                </Form.Item>
+                <Form.Item label="端口" field="db_port" initialValue={3306} rules={[{ required: true }]}>
+                  <Input type="number" />
+                </Form.Item>
+                <Form.Item label="数据库名" field="db_name" rules={[{ required: true }]}>
+                  <Input placeholder="smartcdn" />
+                </Form.Item>
+                <Form.Item label="用户名" field="db_user" rules={[{ required: true }]}>
+                  <Input />
+                </Form.Item>
+                <Form.Item label="密码" field="db_password">
+                  <Input.Password />
+                </Form.Item>
+              </div>
 
               {/* Step 3: Redis 配置 */}
-              {current === 3 && (
-                <>
-                  <Title heading={5}>Redis 配置</Title>
-                  <Form.Item label="Redis 地址" field="redis_addr" rules={[{ required: true }]} initialValue="127.0.0.1:6379">
-                    <Input placeholder="127.0.0.1:6379" />
-                  </Form.Item>
-                  <Form.Item label="Redis 密码" field="redis_password">
-                    <Input.Password placeholder="无密码留空" />
-                  </Form.Item>
-                  <Form.Item label="Redis DB 编号" field="redis_db" initialValue={0}>
-                    <Input type="number" placeholder="0" style={{ width: 120 }} />
-                  </Form.Item>
-                </>
-              )}
+              <div style={{ display: current === 3 ? undefined : 'none' }}>
+                <Title heading={5}>Redis 配置</Title>
+                <Form.Item label="Redis 地址" field="redis_addr" rules={[{ required: true }]} initialValue="127.0.0.1:6379">
+                  <Input placeholder="127.0.0.1:6379" />
+                </Form.Item>
+                <Form.Item label="Redis 密码" field="redis_password">
+                  <Input.Password placeholder="无密码留空" />
+                </Form.Item>
+                <Form.Item label="Redis DB 编号" field="redis_db" initialValue={0}>
+                  <Input type="number" placeholder="0" style={{ width: 120 }} />
+                </Form.Item>
+              </div>
 
-              {/* Step 4: 数据迁移 */}
+              {/* Step 4: 数据迁移（无表单字段） */}
               {current === 4 && (
-                <>
+                <div>
                   <Title heading={5}>数据迁移</Title>
                   <Alert
                     type="info"
@@ -209,82 +208,75 @@ export default function SetupWizard() {
                     content="数据库表结构将在安装完成时自动创建，无需任何手动操作。"
                   />
                   <Text type="secondary">点击「下一步」继续完成安装配置。</Text>
-                </>
+                </div>
               )}
 
               {/* Step 5: 管理员账号 */}
-              {current === 5 && (
-                <>
-                  <Title heading={5}>管理员账号</Title>
-                  <Form.Item label="用户名" field="admin_username" rules={[{ required: true }]}>
-                    <Input />
-                  </Form.Item>
-                  <Form.Item
-                    label="密码"
-                    field="admin_password"
-                    rules={[
-                      { required: true },
-                      { minLength: 8, message: '密码至少 8 位' },
-                      {
-                        validator: (v: string | undefined, cb: (err?: React.ReactNode) => void) => {
-                          if (!v || !/[A-Z]/.test(v) || !/[0-9]/.test(v)) {
-                            cb('密码须包含大写字母和数字');
-                          } else {
-                            cb();
-                          }
-                        },
+              <div style={{ display: current === 5 ? undefined : 'none' }}>
+                <Title heading={5}>管理员账号</Title>
+                <Form.Item label="用户名" field="admin_username" rules={[{ required: true }]}>
+                  <Input />
+                </Form.Item>
+                <Form.Item
+                  label="密码"
+                  field="admin_password"
+                  rules={[
+                    { required: true },
+                    { minLength: 8, message: '密码至少 8 位' },
+                    {
+                      validator: (v: string | undefined, cb: (err?: React.ReactNode) => void) => {
+                        if (!v || !/[A-Z]/.test(v) || !/[0-9]/.test(v)) {
+                          cb('密码须包含大写字母和数字');
+                        } else {
+                          cb();
+                        }
                       },
-                    ]}
-                  >
-                    <Input.Password />
-                  </Form.Item>
-                </>
-              )}
+                    },
+                  ]}
+                >
+                  <Input.Password />
+                </Form.Item>
+              </div>
 
               {/* Step 6: 加密密钥 */}
-              {current === 6 && (
-                <>
-                  <Title heading={5}>加密密钥</Title>
-                  <Alert
-                    type="warning"
-                    style={{ marginBottom: 16 }}
-                    content="系统使用 AES-256-GCM 加密所有 API 凭证和 SSL 私钥。安装完成后请将以下密钥设置为环境变量 SMARTCDN_ENCRYPT_KEY，丢失后加密数据将无法恢复。"
+              <div style={{ display: current === 6 ? undefined : 'none' }}>
+                <Title heading={5}>加密密钥</Title>
+                <Alert
+                  type="warning"
+                  style={{ marginBottom: 16 }}
+                  content="系统使用 AES-256-GCM 加密所有 API 凭证和 SSL 私钥。安装完成后请将以下密钥设置为环境变量 SMARTCDN_ENCRYPT_KEY，丢失后加密数据将无法恢复。"
+                />
+                <Form.Item
+                  label="加密密钥（SMARTCDN_ENCRYPT_KEY）"
+                  field="encrypt_key"
+                  initialValue={encryptKey}
+                  extra="已为您自动生成 32 字节随机密钥，请复制保存到安全位置。"
+                >
+                  <Input
+                    readOnly
+                    suffix={
+                      <Button size="mini" type="text" onClick={copyKey}>
+                        复制
+                      </Button>
+                    }
                   />
-                  <Form.Item
-                    label="加密密钥（SMARTCDN_ENCRYPT_KEY）"
-                    field="encrypt_key"
-                    initialValue={encryptKey}
-                    extra="已为您自动生成 32 字节随机密钥，请复制保存到安全位置。"
-                  >
-                    <Input
-                      readOnly
-                      suffix={
-                        <Button size="mini" type="text" onClick={copyKey}>
-                          复制
-                        </Button>
-                      }
-                    />
-                  </Form.Item>
-                </>
-              )}
+                </Form.Item>
+              </div>
 
               {/* Step 7: 访问地址 */}
-              {current === 7 && (
-                <>
-                  <Title heading={5}>访问地址</Title>
-                  <Form.Item
-                    label="站点 URL"
-                    field="site_url"
-                    rules={[{ required: true }, { type: 'url' }]}
-                    initialValue="http://localhost:8080"
-                  >
-                    <Input />
-                  </Form.Item>
-                </>
-              )}
+              <div style={{ display: current === 7 ? undefined : 'none' }}>
+                <Title heading={5}>访问地址</Title>
+                <Form.Item
+                  label="站点 URL"
+                  field="site_url"
+                  rules={[{ required: true }, { type: 'url' }]}
+                  initialValue="http://localhost:8080"
+                >
+                  <Input />
+                </Form.Item>
+              </div>
 
               <Space style={{ marginTop: 16 }}>
-                {/* Allow going back from DB config (2) to env check (1) */}
                 {current > 1 && (
                   <Button onClick={() => setCurrent((c) => c - 1)}>上一步</Button>
                 )}
