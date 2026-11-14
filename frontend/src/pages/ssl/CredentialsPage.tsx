@@ -1,4 +1,4 @@
-import { useState } from 'react';
+import React, { useState } from 'react';
 import {
   Button, Card, Table, Tag, Typography, Popconfirm, Message, Space,
   Modal, Form, Input, Select, Tabs, Spin,
@@ -15,7 +15,7 @@ interface ProviderField {
 
 interface ProviderDef {
   type: string; label: string; category: string;
-  description?: string; fields: ProviderField[];
+  description?: string; available?: boolean; fields: ProviderField[];
 }
 
 interface Credential {
@@ -196,9 +196,11 @@ export default function CredentialsPage() {
                 placeholder="选择 Provider"
                 onChange={v => setSelectedProviderType(v as string)}
                 showSearch
-                filterOption={(inputValue, option) =>
-                  (option?.props?.children as string)?.toLowerCase().includes(inputValue.toLowerCase())
-                }
+                filterOption={(inputValue, option) => {
+                  const val = (option as React.ReactElement<{ value?: string }>).props?.value;
+                  const prov = filteredProviders.find(p => p.type === val);
+                  return (prov?.label ?? String(val ?? '')).toLowerCase().includes(inputValue.toLowerCase());
+                }}
               >
                 {filteredProviders.map(p => (
                   <Select.Option key={p.type} value={p.type}>
