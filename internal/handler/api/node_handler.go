@@ -24,6 +24,7 @@ func (h *NodeHandler) RegisterRoutes(r *gin.RouterGroup) {
 	nodes.POST("", h.CreateNode)
 	nodes.GET("", h.ListNodes)
 	nodes.GET("/:id", h.GetNode)
+	nodes.PUT("/:id", h.UpdateNode)
 	nodes.DELETE("/:id", h.DeleteNode)
 	nodes.POST("/:id/https-check", h.RetriggerHTTPSCheck)
 	nodes.GET("/:id/install-cmd", h.InstallCommand)
@@ -33,6 +34,7 @@ func (h *NodeHandler) RegisterRoutes(r *gin.RouterGroup) {
 	pools.POST("", h.CreatePool)
 	pools.GET("", h.ListPools)
 	pools.GET("/:pid", h.GetPool)
+	pools.PUT("/:pid", h.UpdatePool)
 	pools.DELETE("/:pid", h.DeletePool)
 	pools.POST("/:pid/members", h.AddMember)
 	pools.DELETE("/:pid/members/:nid", h.RemoveMember)
@@ -122,6 +124,43 @@ func (h *NodeHandler) DeleteNode(c *gin.Context) {
 	c.Status(http.StatusNoContent)
 }
 
+func (h *NodeHandler) UpdateNode(c *gin.Context) {
+	id, err := parseUint64Param(c, "id")
+	if err != nil {
+		c.JSON(http.StatusBadRequest, gin.H{"error": "invalid id"})
+		return
+	}
+	var req struct {
+		Name       string `json:"name" binding:"required,max=128"`
+		ISP        string `json:"isp"`
+		Region     string `json:"region"`
+		OriginAddr string `json:"origin_addr"`
+		OriginPort int    `json:"origin_port"`
+		IsActive   bool   `json:"is_active"`
+	}
+	if err := c.ShouldBindJSON(&req); err != nil {
+		c.JSON(http.StatusBadRequest, gin.H{"error": err.Error()})
+		return
+	}
+	v, err := h.svc.UpdateNode(c.Request.Context(), id, nodeapp.UpdateNodeInput{
+		Name:       req.Name,
+		ISP:        req.ISP,
+		Region:     req.Region,
+		OriginAddr: req.OriginAddr,
+		OriginPort: req.OriginPort,
+		IsActive:   req.IsActive,
+	})
+	if err != nil {
+		if errors.Is(err, nodeapp.ErrNodeNotFound) {
+			c.JSON(http.StatusNotFound, gin.H{"error": err.Error()})
+			return
+		}
+		c.JSON(http.StatusInternalServerError, gin.H{"error": err.Error()})
+		return
+	}
+	c.JSON(http.StatusOK, v)
+}
+
 func (h *NodeHandler) RetriggerHTTPSCheck(c *gin.Context) {
 	id, err := parseUint64Param(c, "id")
 	if err != nil {
@@ -196,8 +235,9 @@ func (h *NodeHandler) DispatchTask(c *gin.Context) {
 // --- Pool ---
 
 type createPoolReq struct {
-	Name    string   `json:"name" binding:"required,max=128"`
-	NodeIDs []uint64 `json:"node_ids"`
+	Name        string   `json:"name" binding:"required,max=128"`
+	Description string   `json:"description"`
+	NodeIDs     []uint64 `json:"node_ids"`
 }
 
 func (h *NodeHandler) CreatePool(c *gin.Context) {
@@ -207,8 +247,9 @@ func (h *NodeHandler) CreatePool(c *gin.Context) {
 		return
 	}
 	v, err := h.svc.CreatePool(c.Request.Context(), nodeapp.CreatePoolInput{
-		Name:    req.Name,
-		NodeIDs: req.NodeIDs,
+		Name:        req.Name,
+		Description: req.Description,
+		NodeIDs:     req.NodeIDs,
 	})
 	if err != nil {
 		c.JSON(http.StatusInternalServerError, gin.H{"error": err.Error()})
@@ -265,6 +306,33 @@ func (h *NodeHandler) DeletePool(c *gin.Context) {
 
 type addMemberReq struct {
 	NodeID uint64 `json:"node_id" binding:"required"`
+}
+
+func (h *NodeHandler) UpdatePool(c *gin.Context) {
+	pid, err := parseUint64Param(c, "pid")
+	if err != nil {
+		c.JSON(http.StatusBadRequest, gin.H{"error": "invalid pool id"})
+		return
+	}
+	var req struct {
+		Name        string `json:"name" binding:"required,max=128"`
+		Description string `json:"description"`
+		IsActive    bool   `json:"is_active"`
+	}
+	if err := c.ShouldBindJSON(&req); err != nil {
+		c.JSON(http.StatusBadRequest, gin.H{"error": err.Error()})
+		return
+	}
+	v, err := h.svc.UpdatePool(c.Request.Context(), pid, req.Name, req.Description, req.IsActive)
+	if err != nil {
+		if errors.Is(err, nodeapp.ErrPoolNotFound) {
+			c.JSON(http.StatusNotFound, gin.H{"error": err.Error()})
+			return
+		}
+		c.JSON(http.StatusInternalServerError, gin.H{"error": err.Error()})
+		return
+	}
+	c.JSON(http.StatusOK, v)
 }
 
 func (h *NodeHandler) AddMember(c *gin.Context) {

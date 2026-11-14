@@ -67,12 +67,13 @@ type NodeTask struct {
 
 // NodePool groups nodes into a named resource pool.
 type NodePool struct {
-	ID        uint64     `gorm:"primarykey;autoIncrement"`
-	Name      string     `gorm:"size:128;not null;uniqueIndex"`
-	IsActive  bool       `gorm:"not null;default:true"`
-	CreatedAt time.Time
-	UpdatedAt time.Time
-	DeletedAt *time.Time `gorm:"index"`
+	ID          uint64     `gorm:"primarykey;autoIncrement"`
+	Name        string     `gorm:"size:128;not null;uniqueIndex"`
+	Description string     `gorm:"size:512"`
+	IsActive    bool       `gorm:"not null;default:true"`
+	CreatedAt   time.Time
+	UpdatedAt   time.Time
+	DeletedAt   *time.Time `gorm:"index"`
 }
 
 // NodePoolMember is the M2M join table between pools and nodes.

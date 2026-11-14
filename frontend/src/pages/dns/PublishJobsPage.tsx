@@ -15,6 +15,7 @@ const statusColor: Record<string, string> = {
 export default function PublishJobsPage() {
   const qc = useQueryClient();
   const [triggerVisible, setTriggerVisible] = useState(false);
+  const [selectedDomainId, setSelectedDomainId] = useState<number | null>(null);
   const [triggerForm] = Form.useForm();
 
   const { data, isLoading } = useQuery({
@@ -29,13 +30,20 @@ export default function PublishJobsPage() {
   });
 
   const { data: recordsData, isLoading: recordsLoading } = useQuery({
-    queryKey: ['records-for-publish', triggerForm.getFieldValue('domain_id')],
-    queryFn: () => {
-      const id = triggerForm.getFieldValue('domain_id');
-      return id ? client.get(`/domains/${id}/records`).then(r => r.data) : null;
-    },
-    enabled: triggerVisible,
+    queryKey: ['records-for-publish', selectedDomainId],
+    queryFn: () =>
+      selectedDomainId ? client.get(`/domains/${selectedDomainId}/records`).then(r => r.data) : null,
+    enabled: triggerVisible && !!selectedDomainId,
   });
+
+  const domains: Domain[] = domainsData?.items ?? [];
+  const domainMap = new Map(domains.map(d => [d.id, d.name]));
+
+  const handleClose = () => {
+    setTriggerVisible(false);
+    setSelectedDomainId(null);
+    triggerForm.resetFields();
+  };
 
   const triggerMut = useMutation({
     mutationFn: (body: { domain_id: number; dry_run: boolean }) =>
@@ -46,18 +54,13 @@ export default function PublishJobsPage() {
     onSuccess: () => {
       qc.invalidateQueries({ queryKey: ['publish-jobs'] });
       Message.success('发布任务已提交');
-      setTriggerVisible(false);
-      triggerForm.resetFields();
+      handleClose();
     },
     onError: (e: unknown) => {
       const msg = (e as { response?: { data?: { error?: string } } })?.response?.data?.error;
       Message.error(msg || '发布失败');
     },
   });
-
-  const domains: Domain[] = domainsData?.items ?? [];
-
-  const domainMap = new Map(domains.map(d => [d.id, d.name]));
 
   const handleTrigger = async () => {
     const vals = await triggerForm.validate();
@@ -101,14 +104,14 @@ export default function PublishJobsPage() {
         visible={triggerVisible}
         onOk={handleTrigger}
         confirmLoading={triggerMut.isPending || recordsLoading}
-        onCancel={() => { setTriggerVisible(false); triggerForm.resetFields(); }}
+        onCancel={handleClose}
         unmountOnExit
       >
         <Form form={triggerForm} layout="vertical">
           <Form.Item label="选择域名" field="domain_id" rules={[{ required: true, message: '请选择域名' }]}>
             <Select
               placeholder="选择要发布的域名"
-              onChange={() => qc.invalidateQueries({ queryKey: ['records-for-publish', triggerForm.getFieldValue('domain_id')] })}
+              onChange={v => setSelectedDomainId(Number(v))}
             >
               {domains.map(d => <Select.Option key={d.id} value={d.id}>{d.name}</Select.Option>)}
             </Select>

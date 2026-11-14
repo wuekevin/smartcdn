@@ -1,8 +1,8 @@
 import { useState } from 'react';
 import {
-  Button, Card, Table, Tag, Typography, Popconfirm, Message, Space, Modal, Form, Input, Select,
+  Button, Card, Table, Tag, Typography, Popconfirm, Message, Space, Modal, Form, Input, Select, Switch,
 } from '@arco-design/web-react';
-import { IconPlus, IconRefresh } from '@arco-design/web-react/icon';
+import { IconPlus, IconRefresh, IconEdit } from '@arco-design/web-react/icon';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import client from '../../api/client';
 
@@ -21,8 +21,11 @@ const CHANNEL_TYPES = [
 export default function AlertChannelsPage() {
   const qc = useQueryClient();
   const [visible, setVisible] = useState(false);
+  const [editVisible, setEditVisible] = useState(false);
+  const [editingRow, setEditingRow] = useState<AlertChannel | null>(null);
   const [selectedType, setSelectedType] = useState('');
   const [form] = Form.useForm();
+  const [editForm] = Form.useForm();
 
   const { data, isLoading } = useQuery({
     queryKey: ['alert-channels'],
@@ -45,11 +48,33 @@ export default function AlertChannelsPage() {
     },
   });
 
+  const updateMut = useMutation({
+    mutationFn: ({ id, name, enabled }: { id: number; name: string; enabled: boolean }) =>
+      client.put(`/alert-channels/${id}`, { name, enabled }),
+    onSuccess: () => {
+      qc.invalidateQueries({ queryKey: ['alert-channels'] });
+      Message.success('已更新');
+      setEditVisible(false);
+      editForm.resetFields();
+      setEditingRow(null);
+    },
+    onError: (e: unknown) => {
+      const msg = (e as { response?: { data?: { error?: string } } })?.response?.data?.error;
+      Message.error(msg || '更新失败');
+    },
+  });
+
   const deleteMut = useMutation({
     mutationFn: (id: number) => client.delete(`/alert-channels/${id}`),
     onSuccess: () => { qc.invalidateQueries({ queryKey: ['alert-channels'] }); Message.success('已删除'); },
     onError: () => Message.error('删除失败'),
   });
+
+  const handleEdit = (row: AlertChannel) => {
+    setEditingRow(row);
+    editForm.setFieldsValue({ name: row.name, enabled: row.enabled });
+    setEditVisible(true);
+  };
 
   const handleCreate = async () => {
     const vals = await form.validate();
@@ -70,9 +95,12 @@ export default function AlertChannelsPage() {
     { title: '创建时间', dataIndex: 'created_at', width: 180 },
     {
       title: '操作', render: (_: unknown, row: AlertChannel) => (
-        <Popconfirm title="确认删除此通知渠道？" onOk={() => deleteMut.mutate(row.id)}>
-          <Button size="mini" type="text" status="danger">删除</Button>
-        </Popconfirm>
+        <Space>
+          <Button size="mini" type="text" icon={<IconEdit />} onClick={() => handleEdit(row)}>编辑</Button>
+          <Popconfirm title="确认删除此通知渠道？" onOk={() => deleteMut.mutate(row.id)}>
+            <Button size="mini" type="text" status="danger">删除</Button>
+          </Popconfirm>
+        </Space>
       ),
     },
   ];
@@ -90,6 +118,24 @@ export default function AlertChannelsPage() {
       >
         <Table loading={isLoading} columns={columns} data={data?.items ?? []} rowKey="id" pagination={false} />
       </Card>
+
+      <Modal
+        title="编辑通知渠道"
+        visible={editVisible}
+        onOk={() => editForm.validate().then(vals => editingRow && updateMut.mutate({ id: editingRow.id, name: vals.name, enabled: vals.enabled ?? true }))}
+        confirmLoading={updateMut.isPending}
+        onCancel={() => { setEditVisible(false); editForm.resetFields(); setEditingRow(null); }}
+        unmountOnExit
+      >
+        <Form form={editForm} layout="vertical">
+          <Form.Item label="渠道名称" field="name" rules={[{ required: true, message: '请输入名称' }]}>
+            <Input />
+          </Form.Item>
+          <Form.Item label="启用状态" field="enabled" triggerPropName="checked">
+            <Switch checkedText="启用" uncheckedText="禁用" />
+          </Form.Item>
+        </Form>
+      </Modal>
 
       <Modal
         title="添加通知渠道"

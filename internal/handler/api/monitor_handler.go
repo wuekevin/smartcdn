@@ -38,6 +38,7 @@ func (h *MonitorHandler) RegisterRoutes(r *gin.RouterGroup) {
 	ac.POST("", h.CreateChannel)
 	ac.GET("", h.ListChannels)
 	ac.GET("/:id", h.GetChannel)
+	ac.PUT("/:id", h.UpdateChannel)
 	ac.DELETE("/:id", h.DeleteChannel)
 
 	// Fired alerts
@@ -258,6 +259,32 @@ func (h *MonitorHandler) GetChannel(c *gin.Context) {
 		return
 	}
 	ch, err := h.svc.GetChannel(c.Request.Context(), id)
+	if err != nil {
+		if errors.Is(err, monapp.ErrChannelNotFound) {
+			c.JSON(http.StatusNotFound, gin.H{"error": "not found"})
+			return
+		}
+		c.JSON(http.StatusInternalServerError, gin.H{"error": err.Error()})
+		return
+	}
+	c.JSON(http.StatusOK, ch)
+}
+
+func (h *MonitorHandler) UpdateChannel(c *gin.Context) {
+	id, err := parseUint64Param(c, "id")
+	if err != nil {
+		c.JSON(http.StatusBadRequest, gin.H{"error": "invalid id"})
+		return
+	}
+	var req struct {
+		Name    string `json:"name" binding:"required,max=128"`
+		Enabled bool   `json:"enabled"`
+	}
+	if err := c.ShouldBindJSON(&req); err != nil {
+		c.JSON(http.StatusBadRequest, gin.H{"error": err.Error()})
+		return
+	}
+	ch, err := h.svc.UpdateChannel(c.Request.Context(), id, req.Name, req.Enabled)
 	if err != nil {
 		if errors.Is(err, monapp.ErrChannelNotFound) {
 			c.JSON(http.StatusNotFound, gin.H{"error": "not found"})

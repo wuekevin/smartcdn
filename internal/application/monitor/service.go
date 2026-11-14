@@ -214,6 +214,24 @@ func (s *Service) ListChannels(ctx context.Context, afterID uint64, limit int) (
 	return s.channels.List(ctx, afterID, limit)
 }
 
+func (s *Service) UpdateChannel(ctx context.Context, id uint64, name string, enabled bool) (*entity.AlertChannel, error) {
+	ch, err := s.channels.FindByID(ctx, id)
+	if err != nil {
+		if errors.Is(err, repo.ErrNotFound) {
+			return nil, ErrChannelNotFound
+		}
+		return nil, err
+	}
+	if name != "" {
+		ch.Name = name
+	}
+	ch.Enabled = enabled
+	if err := s.channels.Update(ctx, ch); err != nil {
+		return nil, err
+	}
+	return ch, nil
+}
+
 func (s *Service) DeleteChannel(ctx context.Context, id uint64) error {
 	if _, err := s.channels.FindByID(ctx, id); err != nil {
 		if errors.Is(err, repo.ErrNotFound) {

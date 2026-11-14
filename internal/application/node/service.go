@@ -153,6 +153,39 @@ func (s *Service) DeleteNode(ctx context.Context, id uint64) error {
 	return s.nodes.Delete(ctx, id)
 }
 
+type UpdateNodeInput struct {
+	Name       string
+	ISP        string
+	Region     string
+	OriginAddr string
+	OriginPort int
+	IsActive   bool
+}
+
+func (s *Service) UpdateNode(ctx context.Context, id uint64, input UpdateNodeInput) (*NodeView, error) {
+	n, err := s.nodes.FindByID(ctx, id)
+	if err != nil {
+		if errors.Is(err, repo.ErrNotFound) {
+			return nil, ErrNodeNotFound
+		}
+		return nil, err
+	}
+	if input.Name != "" {
+		n.Name = input.Name
+	}
+	n.ISP = input.ISP
+	n.Region = input.Region
+	n.OriginAddr = input.OriginAddr
+	if input.OriginPort > 0 {
+		n.OriginPort = input.OriginPort
+	}
+	n.IsActive = input.IsActive
+	if err := s.nodes.Update(ctx, n); err != nil {
+		return nil, err
+	}
+	return toNodeView(n), nil
+}
+
 func (s *Service) RetriggerHTTPSCheck(ctx context.Context, id uint64) error {
 	n, err := s.nodes.FindByID(ctx, id)
 	if err != nil {
@@ -302,15 +335,18 @@ func (s *Service) AckTask(ctx context.Context, token string, taskID uint64, stat
 // --- Pool management ---
 
 type CreatePoolInput struct {
-	Name    string
-	NodeIDs []uint64
+	Name        string
+	Description string
+	NodeIDs     []uint64
 }
 
 type PoolView struct {
-	ID       uint64              `json:"id"`
-	Name     string              `json:"name"`
-	IsActive bool                `json:"is_active"`
-	Members  []PoolMemberView    `json:"members,omitempty"`
+	ID          uint64           `json:"id"`
+	Name        string           `json:"name"`
+	Description string           `json:"description"`
+	IsActive    bool             `json:"is_active"`
+	NodeCount   int              `json:"node_count"`
+	Members     []PoolMemberView `json:"members,omitempty"`
 }
 
 type PoolMemberView struct {
@@ -319,7 +355,7 @@ type PoolMemberView struct {
 }
 
 func (s *Service) CreatePool(ctx context.Context, input CreatePoolInput) (*PoolView, error) {
-	p := &entity.NodePool{Name: input.Name, IsActive: true}
+	p := &entity.NodePool{Name: input.Name, Description: input.Description, IsActive: true}
 	if err := s.pools.Create(ctx, p); err != nil {
 		return nil, fmt.Errorf("node: create pool: %w", err)
 	}
@@ -368,6 +404,26 @@ func (s *Service) AddPoolMember(ctx context.Context, poolID, nodeID uint64) erro
 
 func (s *Service) RemovePoolMember(ctx context.Context, poolID, nodeID uint64) error {
 	return s.pools.RemoveMember(ctx, poolID, nodeID)
+}
+
+func (s *Service) UpdatePool(ctx context.Context, id uint64, name, description string, isActive bool) (*PoolView, error) {
+	p, err := s.pools.FindByID(ctx, id)
+	if err != nil {
+		if errors.Is(err, repo.ErrNotFound) {
+			return nil, ErrPoolNotFound
+		}
+		return nil, err
+	}
+	if name != "" {
+		p.Name = name
+	}
+	p.Description = description
+	p.IsActive = isActive
+	if err := s.pools.Update(ctx, p); err != nil {
+		return nil, err
+	}
+	members, _ := s.pools.ListMembers(ctx, p.ID)
+	return toPoolView(p, members), nil
 }
 
 func (s *Service) DeletePool(ctx context.Context, id uint64) error {
@@ -442,7 +498,7 @@ func toTaskView(t *entity.NodeTask) *TaskView {
 }
 
 func toPoolView(p *entity.NodePool, members []entity.NodePoolMember) *PoolView {
-	v := &PoolView{ID: p.ID, Name: p.Name, IsActive: p.IsActive}
+	v := &PoolView{ID: p.ID, Name: p.Name, Description: p.Description, IsActive: p.IsActive, NodeCount: len(members)}
 	for _, m := range members {
 		v.Members = append(v.Members, PoolMemberView{NodeID: m.NodeID, Priority: m.Priority})
 	}

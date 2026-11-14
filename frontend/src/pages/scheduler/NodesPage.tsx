@@ -1,8 +1,8 @@
 import { useState } from 'react';
 import {
-  Button, Card, Table, Tag, Typography, Space, Message, Modal, Form, Input, InputNumber, Popconfirm,
+  Button, Card, Table, Tag, Typography, Space, Message, Modal, Form, Input, InputNumber, Popconfirm, Switch,
 } from '@arco-design/web-react';
-import { IconPlus, IconRefresh } from '@arco-design/web-react/icon';
+import { IconPlus, IconRefresh, IconEdit } from '@arco-design/web-react/icon';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import client from '../../api/client';
 
@@ -21,7 +21,10 @@ interface CDNNode {
 export default function NodesPage() {
   const qc = useQueryClient();
   const [visible, setVisible] = useState(false);
+  const [editVisible, setEditVisible] = useState(false);
+  const [editingRow, setEditingRow] = useState<CDNNode | null>(null);
   const [form] = Form.useForm();
+  const [editForm] = Form.useForm();
 
   const { data, isLoading } = useQuery({
     queryKey: ['cdn-nodes'],
@@ -43,11 +46,42 @@ export default function NodesPage() {
     },
   });
 
+  const updateMut = useMutation({
+    mutationFn: ({ id, ...body }: { id: number } & Record<string, unknown>) =>
+      client.put(`/nodes/${id}`, body),
+    onSuccess: () => {
+      qc.invalidateQueries({ queryKey: ['cdn-nodes'] });
+      Message.success('节点已更新');
+      setEditVisible(false);
+      editForm.resetFields();
+      setEditingRow(null);
+    },
+    onError: (e: unknown) => {
+      const msg = (e as { response?: { data?: { error?: string } } })?.response?.data?.error;
+      Message.error(msg || '更新失败');
+    },
+  });
+
   const deleteMut = useMutation({
     mutationFn: (id: number) => client.delete(`/nodes/${id}`),
     onSuccess: () => { qc.invalidateQueries({ queryKey: ['cdn-nodes'] }); Message.success('节点已删除'); },
     onError: () => Message.error('删除失败'),
   });
+
+  const handleEdit = (row: CDNNode) => {
+    setEditingRow(row);
+    editForm.setFieldsValue({
+      name: row.name, isp: row.isp, region: row.region,
+      origin_addr: row.https_latency_ms, origin_port: 80, is_active: row.status === 'active',
+    });
+    client.get(`/nodes/${row.id}`).then(r => {
+      editForm.setFieldsValue({
+        name: r.data.name, isp: r.data.isp, region: r.data.region,
+        origin_addr: r.data.origin_addr, origin_port: r.data.origin_port, is_active: r.data.is_active,
+      });
+    });
+    setEditVisible(true);
+  };
 
   const statusColor: Record<string, string> = {
     active: 'green', inactive: 'gray', maintenance: 'orange', offline: 'red',
@@ -80,6 +114,7 @@ export default function NodesPage() {
               Message.success('HTTPS 检测已触发');
             })
           }>HTTPS 检测</Button>
+          <Button size="mini" type="text" icon={<IconEdit />} onClick={() => handleEdit(row)}>编辑</Button>
           <Popconfirm title="确认删除此节点？" onOk={() => deleteMut.mutate(row.id)}>
             <Button size="mini" type="text" status="danger">删除</Button>
           </Popconfirm>
@@ -128,6 +163,36 @@ export default function NodesPage() {
           </Form.Item>
           <Form.Item label="源站端口" field="origin_port" initialValue={80}>
             <InputNumber min={1} max={65535} />
+          </Form.Item>
+        </Form>
+      </Modal>
+
+      <Modal
+        title="编辑 CDN 节点"
+        visible={editVisible}
+        onOk={() => editForm.validate().then(vals => editingRow && updateMut.mutate({ id: editingRow.id, ...vals }))}
+        confirmLoading={updateMut.isPending}
+        onCancel={() => { setEditVisible(false); editForm.resetFields(); setEditingRow(null); }}
+        unmountOnExit
+      >
+        <Form form={editForm} layout="vertical">
+          <Form.Item label="节点名称" field="name" rules={[{ required: true, message: '请输入节点名称' }]}>
+            <Input />
+          </Form.Item>
+          <Form.Item label="地区" field="region">
+            <Input placeholder="如：Beijing" />
+          </Form.Item>
+          <Form.Item label="ISP" field="isp">
+            <Input placeholder="如：ChinaUnicom" />
+          </Form.Item>
+          <Form.Item label="源站地址" field="origin_addr">
+            <Input placeholder="1.2.3.4 或域名" />
+          </Form.Item>
+          <Form.Item label="源站端口" field="origin_port">
+            <InputNumber min={1} max={65535} />
+          </Form.Item>
+          <Form.Item label="启用" field="is_active" triggerPropName="checked">
+            <Switch checkedText="启用" uncheckedText="禁用" />
           </Form.Item>
         </Form>
       </Modal>
