@@ -99,7 +99,7 @@ export default function DomainsPage() {
           </Form.Item>
           <Form.Item label="DNS 账户" field="account_id" rules={[{ required: true, message: '请选择 DNS 账户' }]}>
             <Select placeholder="选择 DNS 账户">
-              {accounts.map(a => <Select.Option key={a.id} value={a.id}>{a.name}</Select.Option>)}
+              {accounts.map(a => <Select.Option key={a.id} value={Number(a.id)}>{a.name}</Select.Option>)}
             </Select>
           </Form.Item>
           <Form.Item label="ICP 备案" field="icp_filed" triggerPropName="checked" initialValue={false}>

@@ -103,6 +103,26 @@ func (s *Service) ValidateAccount(ctx context.Context, accountID uint64) error {
 	return provider.ValidateCredentials(ctx)
 }
 
+func (s *Service) UpdateAccount(ctx context.Context, id uint64, name string, isActive bool) (*AccountView, error) {
+	acc, err := s.accounts.FindByID(ctx, id)
+	if err != nil {
+		if errors.Is(err, repo.ErrNotFound) {
+			return nil, ErrAccountNotFound
+		}
+		return nil, err
+	}
+	acc.Name = name
+	acc.IsActive = isActive
+	if err := s.accounts.Update(ctx, acc); err != nil {
+		return nil, err
+	}
+	return toAccountView(acc), nil
+}
+
+func (s *Service) DeleteAccount(ctx context.Context, id uint64) error {
+	return s.accounts.Delete(ctx, id)
+}
+
 // --- Domain management ---
 
 type AddDomainInput struct {

@@ -1,6 +1,6 @@
 import { useState } from 'react';
 import {
-  Button, Card, Table, Tag, Typography, Space, Message, Modal, Form, Input, InputNumber,
+  Button, Card, Table, Tag, Typography, Space, Message, Modal, Form, Input, InputNumber, Popconfirm,
 } from '@arco-design/web-react';
 import { IconPlus, IconRefresh } from '@arco-design/web-react/icon';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
@@ -43,6 +43,12 @@ export default function NodesPage() {
     },
   });
 
+  const deleteMut = useMutation({
+    mutationFn: (id: number) => client.delete(`/nodes/${id}`),
+    onSuccess: () => { qc.invalidateQueries({ queryKey: ['cdn-nodes'] }); Message.success('节点已删除'); },
+    onError: () => Message.error('删除失败'),
+  });
+
   const statusColor: Record<string, string> = {
     active: 'green', inactive: 'gray', maintenance: 'orange', offline: 'red',
   };
@@ -74,6 +80,9 @@ export default function NodesPage() {
               Message.success('HTTPS 检测已触发');
             })
           }>HTTPS 检测</Button>
+          <Popconfirm title="确认删除此节点？" onOk={() => deleteMut.mutate(row.id)}>
+            <Button size="mini" type="text" status="danger">删除</Button>
+          </Popconfirm>
         </Space>
       ),
     },

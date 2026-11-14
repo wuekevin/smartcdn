@@ -23,6 +23,8 @@ func (h *CDNHandler) RegisterRoutes(r *gin.RouterGroup) {
 	acc.POST("", h.CreateAccount)
 	acc.GET("", h.ListAccounts)
 	acc.GET("/:aid", h.GetAccount)
+	acc.PUT("/:aid", h.UpdateAccount)
+	acc.DELETE("/:aid", h.DeleteAccount)
 	acc.POST("/:aid/validate", h.ValidateAccount)
 
 	// CDN domains
@@ -96,6 +98,51 @@ func (h *CDNHandler) GetAccount(c *gin.Context) {
 		return
 	}
 	c.JSON(http.StatusOK, v)
+}
+
+// PUT /api/v1/cdn/accounts/:aid
+func (h *CDNHandler) UpdateAccount(c *gin.Context) {
+	id, err := parseUint64Param(c, "aid")
+	if err != nil {
+		c.JSON(http.StatusBadRequest, gin.H{"error": "invalid account id"})
+		return
+	}
+	var req struct {
+		Name     string `json:"name" binding:"required,max=128"`
+		IsActive bool   `json:"is_active"`
+	}
+	if err := c.ShouldBindJSON(&req); err != nil {
+		c.JSON(http.StatusBadRequest, gin.H{"error": err.Error()})
+		return
+	}
+	v, err := h.svc.UpdateAccount(c.Request.Context(), id, req.Name, req.IsActive)
+	if err != nil {
+		if err == cdnsvc.ErrAccountNotFound {
+			c.JSON(http.StatusNotFound, gin.H{"error": "cdn account not found"})
+			return
+		}
+		c.JSON(http.StatusInternalServerError, gin.H{"error": err.Error()})
+		return
+	}
+	c.JSON(http.StatusOK, v)
+}
+
+// DELETE /api/v1/cdn/accounts/:aid
+func (h *CDNHandler) DeleteAccount(c *gin.Context) {
+	id, err := parseUint64Param(c, "aid")
+	if err != nil {
+		c.JSON(http.StatusBadRequest, gin.H{"error": "invalid account id"})
+		return
+	}
+	if err := h.svc.DeleteAccount(c.Request.Context(), id); err != nil {
+		if err == cdnsvc.ErrAccountNotFound {
+			c.JSON(http.StatusNotFound, gin.H{"error": "cdn account not found"})
+			return
+		}
+		c.JSON(http.StatusInternalServerError, gin.H{"error": err.Error()})
+		return
+	}
+	c.Status(http.StatusNoContent)
 }
 
 // POST /api/v1/cdn/accounts/:aid/validate

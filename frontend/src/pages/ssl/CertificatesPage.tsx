@@ -177,7 +177,7 @@ export default function CertificatesPage() {
           <Form.Item label="DNS 账户（DNS-01 验证用）" field="dns_account_id">
             <Select placeholder="选择 DNS 账户" allowClear>
               {dnsAccounts.map(a => (
-                <Select.Option key={a.id} value={a.id}>{a.name} ({a.provider_type})</Select.Option>
+                <Select.Option key={a.id} value={Number(a.id)}>{a.name} ({a.provider_type})</Select.Option>
               ))}
             </Select>
           </Form.Item>
