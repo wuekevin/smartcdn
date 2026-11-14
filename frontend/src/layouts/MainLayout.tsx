@@ -40,8 +40,9 @@ const navItems = [
   },
   { key: '/ssl',                      icon: <IconSafe />,       label: 'SSL 证书',
     children: [
-      { key: '/ssl/certificates', label: '证书列表' },
-      { key: '/ssl/workflows',    label: '工作流' },
+      { key: '/ssl/certificates',  label: '证书列表' },
+      { key: '/ssl/credentials',   label: '凭据中心' },
+      { key: '/ssl/workflows',     label: '工作流' },
     ],
   },
   { key: '/monitor',                  icon: <IconBulb />,       label: '监控中心',

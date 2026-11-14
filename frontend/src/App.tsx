@@ -23,6 +23,7 @@ import ProbesPage from './pages/scheduler/ProbesPage';
 import CandidatesPage from './pages/scheduler/CandidatesPage';
 
 import CertificatesPage from './pages/ssl/CertificatesPage';
+import CredentialsPage from './pages/ssl/CredentialsPage';
 import WorkflowsPage from './pages/ssl/WorkflowsPage';
 
 import MetricsPage from './pages/monitor/MetricsPage';
@@ -85,6 +86,7 @@ export default function App() {
             <Route path="scheduler/candidates" element={<ProtectedRoute><CandidatesPage /></ProtectedRoute>} />
 
             <Route path="ssl/certificates" element={<ProtectedRoute><CertificatesPage /></ProtectedRoute>} />
+            <Route path="ssl/credentials" element={<ProtectedRoute><CredentialsPage /></ProtectedRoute>} />
             <Route path="ssl/workflows" element={<ProtectedRoute><WorkflowsPage /></ProtectedRoute>} />
 
             <Route path="monitor/metrics" element={<ProtectedRoute><MetricsPage /></ProtectedRoute>} />

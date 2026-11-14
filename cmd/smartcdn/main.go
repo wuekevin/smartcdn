@@ -33,12 +33,16 @@ import (
 	"github.com/wuekevin/smartcdn/internal/infra/crypto"
 	infradb "github.com/wuekevin/smartcdn/internal/infra/db"
 	"github.com/wuekevin/smartcdn/internal/infra/logger"
+	sslapp "github.com/wuekevin/smartcdn/internal/application/ssl"
 	infraprovider "github.com/wuekevin/smartcdn/internal/infra/provider"
 	"github.com/wuekevin/smartcdn/internal/infra/provider/aliyun"
 	"github.com/wuekevin/smartcdn/internal/infra/provider/aliyun_cdn"
 	"github.com/wuekevin/smartcdn/internal/infra/provider/aliyun_esa"
 	"github.com/wuekevin/smartcdn/internal/infra/provider/cf_cdn"
 	"github.com/wuekevin/smartcdn/internal/infra/provider/cloudflare"
+	deployreg "github.com/wuekevin/smartcdn/internal/infra/provider/deploy"
+	localfile "github.com/wuekevin/smartcdn/internal/infra/provider/deploy/local_file"
+	nginxssh "github.com/wuekevin/smartcdn/internal/infra/provider/deploy/nginx_ssh"
 	"github.com/wuekevin/smartcdn/internal/infra/provider/dnspod"
 	infraredis "github.com/wuekevin/smartcdn/internal/infra/redis"
 	"github.com/wuekevin/smartcdn/internal/infra/pubsub"
@@ -127,6 +131,8 @@ func main() {
 	circuitBreakerRepo := repo.NewCircuitBreakerRepo(gdb)
 	certRepo := repo.NewCertificateRepo(gdb)
 	certDeployTargetRepo := repo.NewCertDeployTargetRepo(gdb)
+	sslCredRepo := repo.NewSSLCredentialRepo(gdb)
+	sslDeployJobRepo := repo.NewSSLDeployJobRepo(gdb)
 	acmeAccountRepo := repo.NewACMEAccountRepo(gdb)
 	wfTemplateRepo := repo.NewWorkflowTemplateRepo(gdb)
 	wfRunRepo := repo.NewWorkflowRunRepo(gdb)
@@ -150,6 +156,10 @@ func main() {
 	cdnRegistry.RegisterCDN(port.CDNProviderAliyunESA, aliyunesa.NewAliyunESAProvider)
 	cdnRegistry.RegisterCDN(port.CDNProviderCloudflare, cfcdn.NewCloudflareCDNProvider)
 
+	deployRegistry := deployreg.NewRegistry()
+	deployRegistry.RegisterDeploy("local_file", localfile.New)
+	deployRegistry.RegisterDeploy("nginx_ssh", nginxssh.New)
+
 	hub := pubsub.NewHub()
 
 	// --- Application services ---
@@ -163,6 +173,7 @@ func main() {
 	probeSvc := probeapp.NewService(probeAgentRepo, probeResultRepo, ipCandidateRepo)
 	_ = circuitBreakerRepo
 	certSvc := certapp.NewService(certRepo, certDeployTargetRepo, acmeAccountRepo, &providerDNSAdapter{svc: providerSvc})
+	sslSvc := sslapp.NewService(sslCredRepo, sslDeployJobRepo, certRepo, deployRegistry)
 	wfEngine := wfapp.NewEngine(wfTemplateRepo, wfRunRepo, wfNodeRunRepo)
 	migEngine := migsvc.NewEngine(migJobRepo, domainRepo, dnsRecordRepo, dnsSnapshotRepo, dnsAccountRepo, dnsRegistry)
 	multiDNSSvc := migsvc.NewMultiDNSService(multiDNSConfigRepo, domainRepo, dnsAccountRepo, dnsRegistry)
@@ -177,6 +188,7 @@ func main() {
 	nodeHandler := api.NewNodeHandler(nodeSvc)
 	agentHandler := api.NewAgentHandler(nodeSvc, probeSvc)
 	certHandler := api.NewCertificateHandler(certSvc)
+	sslHandler := api.NewSSLHandler(sslSvc)
 	wfHandler := api.NewWorkflowHandler(wfEngine)
 	migHandler := api.NewMigrationHandler(migEngine, multiDNSSvc)
 	monitorHandler := api.NewMonitorHandler(monitorSvc)
@@ -201,6 +213,7 @@ func main() {
 	publishHandler.RegisterRoutes(protected)
 	nodeHandler.RegisterRoutes(protected)
 	certHandler.RegisterRoutes(protected)
+	sslHandler.RegisterRoutes(protected)
 	wfHandler.RegisterRoutes(protected)
 	migHandler.RegisterRoutes(protected)
 	monitorHandler.RegisterRoutes(protected)
