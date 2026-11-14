@@ -121,6 +121,18 @@ func (r *IPCandidateRepo) FindByDomainAndIP(ctx context.Context, domainID uint64
 	return &c, nil
 }
 
+func (r *IPCandidateRepo) List(ctx context.Context, afterID uint64, limit int) ([]entity.IPCandidate, error) {
+	if limit <= 0 {
+		limit = 20
+	}
+	var cs []entity.IPCandidate
+	q := r.db.WithContext(ctx)
+	if afterID > 0 {
+		q = q.Where("id < ?", afterID)
+	}
+	return cs, q.Order("id DESC").Limit(limit).Find(&cs).Error
+}
+
 func (r *IPCandidateRepo) ListByDomain(ctx context.Context, domainID uint64, afterID uint64, limit int) ([]entity.IPCandidate, error) {
 	if limit <= 0 {
 		limit = 20

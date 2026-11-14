@@ -23,6 +23,37 @@ func NewAgentHandler(nodeSvc *nodeapp.Service, probeSvc *probeapp.Service) *Agen
 	return &AgentHandler{nodeSvc: nodeSvc, probeSvc: probeSvc}
 }
 
+// RegisterManagementRoutes registers operator-facing management endpoints for probe agents
+// and IP candidates. These are mounted on the JWT-protected router.
+func (h *AgentHandler) RegisterManagementRoutes(r *gin.RouterGroup) {
+	r.GET("/probe-agents", h.ListProbeAgents)
+	r.GET("/ip-candidates", h.ListIPCandidates)
+}
+
+// GET /api/v1/probe-agents
+func (h *AgentHandler) ListProbeAgents(c *gin.Context) {
+	afterID, _ := parseUint64Query(c, "after_id")
+	limit, _ := parseIntQuery(c, "limit", 20)
+	views, err := h.probeSvc.ListAgents(c.Request.Context(), afterID, limit)
+	if err != nil {
+		c.JSON(http.StatusInternalServerError, gin.H{"error": err.Error()})
+		return
+	}
+	c.JSON(http.StatusOK, gin.H{"items": views})
+}
+
+// GET /api/v1/ip-candidates
+func (h *AgentHandler) ListIPCandidates(c *gin.Context) {
+	afterID, _ := parseUint64Query(c, "after_id")
+	limit, _ := parseIntQuery(c, "limit", 50)
+	views, err := h.probeSvc.ListAllCandidates(c.Request.Context(), afterID, limit)
+	if err != nil {
+		c.JSON(http.StatusInternalServerError, gin.H{"error": err.Error()})
+		return
+	}
+	c.JSON(http.StatusOK, gin.H{"items": views})
+}
+
 // RegisterRoutes registers agent API routes. The caller is responsible for
 // mounting this on a *gin.RouterGroup that is served over a tls.Config with
 // tls.RequireAndVerifyClientCert, so the cert SN is available via tls.ConnectionState.

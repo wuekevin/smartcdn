@@ -30,6 +30,7 @@ type IPCandidateRepository interface {
 	Create(ctx context.Context, c *entity.IPCandidate) error
 	FindByID(ctx context.Context, id uint64) (*entity.IPCandidate, error)
 	FindByDomainAndIP(ctx context.Context, domainID uint64, ip string) (*entity.IPCandidate, error)
+	List(ctx context.Context, afterID uint64, limit int) ([]entity.IPCandidate, error)
 	ListByDomain(ctx context.Context, domainID uint64, afterID uint64, limit int) ([]entity.IPCandidate, error)
 	ListEligibleByDomainAndISP(ctx context.Context, domainID uint64, isp string) ([]entity.IPCandidate, error)
 	Update(ctx context.Context, c *entity.IPCandidate) error

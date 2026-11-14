@@ -33,6 +33,18 @@ func (r *PublishJobRepo) Update(ctx context.Context, job *entity.PublishJob) err
 	return r.db.WithContext(ctx).Save(job).Error
 }
 
+func (r *PublishJobRepo) List(ctx context.Context, afterID uint64, limit int) ([]entity.PublishJob, error) {
+	if limit <= 0 {
+		limit = 20
+	}
+	var jobs []entity.PublishJob
+	q := r.db.WithContext(ctx)
+	if afterID > 0 {
+		q = q.Where("id < ?", afterID)
+	}
+	return jobs, q.Order("id DESC").Limit(limit).Find(&jobs).Error
+}
+
 func (r *PublishJobRepo) ListByDomain(ctx context.Context, domainID uint64, afterID uint64, limit int) ([]entity.PublishJob, error) {
 	if limit <= 0 {
 		limit = 20

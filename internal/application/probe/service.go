@@ -222,6 +222,19 @@ func (s *Service) ListCandidates(ctx context.Context, domainID uint64, afterID u
 	return views, nil
 }
 
+// ListAllCandidates returns all IP candidates paginated, without domain filter.
+func (s *Service) ListAllCandidates(ctx context.Context, afterID uint64, limit int) ([]CandidateView, error) {
+	cs, err := s.candidates.List(ctx, afterID, limit)
+	if err != nil {
+		return nil, err
+	}
+	views := make([]CandidateView, len(cs))
+	for i, c := range cs {
+		views[i] = *toCandidateView(&c)
+	}
+	return views, nil
+}
+
 func (s *Service) PromoteCandidate(ctx context.Context, id uint64) error {
 	c, err := s.candidates.FindByID(ctx, id)
 	if err != nil {

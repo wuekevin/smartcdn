@@ -194,6 +194,9 @@ func main() {
 	userHandler.RegisterRoutes(protected)
 	auditLogsHandler.RegisterRoutes(protected)
 
+	// Management routes for probe agents and IP candidates (JWT-protected)
+	agentHandler.RegisterManagementRoutes(protected)
+
 	// Agent/probe routes use token auth (not JWT)
 	agentHandler.RegisterRoutes(v1)
 
@@ -249,10 +252,19 @@ func runMigrations(gdb *gorm.DB, log *zap.Logger) {
 	}
 	log.Info("database migrations applied")
 
-	// AutoMigrate ensures any columns missing from a setup-wizard-created table
-	// (which used a minimal schema) are added. Safe to run repeatedly.
-	if err := gdb.AutoMigrate(&entity.User{}); err != nil {
-		log.Fatal("auto-migrate user table", zap.Error(err))
+	// AutoMigrate creates/updates all tables to match entity structs.
+	// Safe to run repeatedly; only adds missing columns, never drops.
+	if err := gdb.AutoMigrate(
+		&entity.User{},
+		&entity.DNSAccount{},
+		&entity.Domain{}, &entity.DNSRecord{}, &entity.DNSSnapshot{},
+		&entity.CDNAccount{}, &entity.CDNDomain{}, &entity.CDNCustomHostname{},
+		&entity.CDNNode{}, &entity.NodeAgent{}, &entity.NodeTask{}, &entity.NodePool{}, &entity.NodePoolMember{},
+		&entity.ProbeAgent{}, &entity.ProbeResult{}, &entity.IPCandidate{}, &entity.SchedulerCircuitBreaker{},
+		&entity.PublishJob{},
+		&entity.MigrationJob{}, &entity.MultiDNSConfig{},
+	); err != nil {
+		log.Fatal("auto-migrate", zap.Error(err))
 	}
 }
 

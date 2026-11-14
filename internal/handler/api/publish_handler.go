@@ -21,6 +21,20 @@ func (h *PublishHandler) RegisterRoutes(r *gin.RouterGroup) {
 	g := r.Group("/domains/:id/publish")
 	g.POST("", h.Publish)
 	g.POST("/dry-run", h.DryRun)
+
+	r.GET("/publish-jobs", h.ListJobs)
+}
+
+// GET /api/v1/publish-jobs
+func (h *PublishHandler) ListJobs(c *gin.Context) {
+	afterID, _ := parseUint64Query(c, "after_id")
+	limit, _ := parseIntQuery(c, "limit", 20)
+	jobs, err := h.engine.ListJobs(c.Request.Context(), afterID, limit)
+	if err != nil {
+		c.JSON(http.StatusInternalServerError, gin.H{"error": err.Error()})
+		return
+	}
+	c.JSON(http.StatusOK, gin.H{"items": jobs})
 }
 
 // POST /api/v1/domains/:id/publish

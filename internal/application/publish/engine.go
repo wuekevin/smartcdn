@@ -65,6 +65,11 @@ type PublishResult struct {
 	Error      string              `json:"error,omitempty"`
 }
 
+// ListJobs returns a paginated list of all publish jobs (newest first).
+func (e *Engine) ListJobs(ctx context.Context, afterID uint64, limit int) ([]entity.PublishJob, error) {
+	return e.jobs.List(ctx, afterID, limit)
+}
+
 // Run executes the full 13-step pipeline synchronously.
 func (e *Engine) Run(ctx context.Context, req PublishRequest) (*PublishResult, error) {
 	payloadBytes, _ := json.Marshal(req.Records)
