@@ -2,6 +2,7 @@ package main
 
 import (
 	"context"
+	"flag"
 	"fmt"
 	"os"
 	"time"
@@ -38,6 +39,9 @@ import (
 )
 
 func main() {
+	portFlag := flag.String("port", "", "HTTP listen port (overrides PORT env and config.yaml)")
+	flag.Parse()
+
 	if err := logger.Init(); err != nil {
 		fmt.Fprintln(os.Stderr, "FATAL: logger init:", err)
 		os.Exit(1)
@@ -61,7 +65,7 @@ func main() {
 	if !setupSvc.IsInstalled() {
 		log.Info("install.lock not found — running in setup mode")
 		api.RegisterSPA(r, frontendFS())
-		startServer(r, setupPort(), log)
+		startServer(r, resolvePort(*portFlag, setupPort()), log)
 		return
 	}
 
@@ -178,7 +182,7 @@ func main() {
 	// Background: periodic alert evaluation
 	go runAlertEvaluator(monitorSvc, log)
 
-	startServer(r, cfg.Port, log)
+	startServer(r, resolvePort(*portFlag, cfg.Port), log)
 }
 
 func mustLoadConfig(log *zap.Logger) *appconfig.AppConfig {
@@ -242,13 +246,22 @@ func startServer(r *gin.Engine, port string, log *zap.Logger) {
 	}
 }
 
-// setupPort returns the port to use in setup mode (no config.yaml yet).
+// setupPort returns the port for setup mode (no config.yaml yet).
 // Reads PORT env var; defaults to 8080.
 func setupPort() string {
 	if p := os.Getenv("PORT"); p != "" {
 		return p
 	}
 	return "8080"
+}
+
+// resolvePort returns flagVal when non-empty, otherwise fallback.
+// This lets -port override both env var and config.yaml.
+func resolvePort(flagVal, fallback string) string {
+	if flagVal != "" {
+		return flagVal
+	}
+	return fallback
 }
 
 // providerDNSAdapter adapts provider.Service to certificate.DNSProviderResolver.
