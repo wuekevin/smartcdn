@@ -3,9 +3,7 @@ package main
 import (
 	"context"
 	"fmt"
-	"net/url"
 	"os"
-	"strconv"
 	"time"
 
 	"github.com/gin-gonic/gin"
@@ -192,16 +190,7 @@ func mustLoadConfig(log *zap.Logger) *appconfig.AppConfig {
 }
 
 func mustConnectDB(cfg *appconfig.AppConfig, log *zap.Logger) *gorm.DB {
-	var dsn string
-	if cfg.Database.Host != "" {
-		dsn = cfg.Database.DSN()
-	} else {
-		dsn = appconfig.DSNFromEnv()
-	}
-	if dsn == "" {
-		log.Fatal("database not configured: run the setup wizard or set DB_DSN")
-	}
-	gdb, err := infradb.New(infradb.Config{DSN: dsn})
+	gdb, err := infradb.New(infradb.Config{DSN: cfg.Database.DSN()})
 	if err != nil {
 		log.Fatal("DB connect failed", zap.Error(err))
 	}
@@ -209,40 +198,15 @@ func mustConnectDB(cfg *appconfig.AppConfig, log *zap.Logger) *gorm.DB {
 }
 
 func mustConnectRedis(cfg *appconfig.AppConfig, log *zap.Logger) *redis.Client {
-	var addr, pass string
-	var db int
-	if cfg.Redis.Addr != "" {
-		addr = cfg.Redis.Addr
-		pass = cfg.Redis.Password
-		db = cfg.Redis.DB
-	} else {
-		rawURL := appconfig.RedisURLFromEnv()
-		if rawURL == "" {
-			rawURL = "redis://localhost:6379/0"
-		}
-		addr, pass, db = parseRedisURL(rawURL)
-	}
-	rdb, err := infraredis.New(infraredis.Config{Addr: addr, Password: pass, DB: db})
+	rdb, err := infraredis.New(infraredis.Config{
+		Addr:     cfg.Redis.Addr,
+		Password: cfg.Redis.Password,
+		DB:       cfg.Redis.DB,
+	})
 	if err != nil {
 		log.Fatal("Redis connect failed", zap.Error(err))
 	}
 	return rdb
-}
-
-func parseRedisURL(rawURL string) (addr, password string, db int) {
-	u, err := url.Parse(rawURL)
-	if err != nil {
-		return rawURL, "", 0
-	}
-	addr = u.Host
-	if u.User != nil {
-		password, _ = u.User.Password()
-	}
-	if len(u.Path) > 1 {
-		n, _ := strconv.Atoi(u.Path[1:])
-		db = n
-	}
-	return
 }
 
 func runMigrations(gdb *gorm.DB, log *zap.Logger) {
