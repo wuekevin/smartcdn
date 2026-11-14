@@ -23,6 +23,7 @@ type ProviderDef struct {
 	Label       string          `json:"label"`
 	Category    string          `json:"category"` // dns | deploy | notify | acme_ca
 	Description string          `json:"description,omitempty"`
+	Available   bool            `json:"available"` // true 表示已有实际实现，false 表示仅定义 schema 尚未实现
 	Fields      []ProviderField `json:"fields"`
 }
 
@@ -43,7 +44,7 @@ func CatalogByCategory(category string) []ProviderDef {
 var allProviders = []ProviderDef{
 	// ---- DNS Providers ----
 	{
-		Type: "aliyun_dns", Label: "阿里云 DNS", Category: "dns",
+		Type: "aliyun_dns", Label: "阿里云 DNS", Category: "dns", Available: true,
 		Description: "阿里云云解析 DNS（万网）",
 		Fields: []ProviderField{
 			{Key: "access_key_id", Label: "Access Key ID", Type: "text", Required: true},
@@ -51,7 +52,7 @@ var allProviders = []ProviderDef{
 		},
 	},
 	{
-		Type: "dnspod", Label: "腾讯云 DNSPod", Category: "dns",
+		Type: "dnspod", Label: "腾讯云 DNSPod", Category: "dns", Available: true,
 		Description: "腾讯云 DNSPod（含 dnspod.cn）",
 		Fields: []ProviderField{
 			{Key: "secret_id", Label: "SecretId", Type: "text", Required: true},
@@ -59,7 +60,7 @@ var allProviders = []ProviderDef{
 		},
 	},
 	{
-		Type: "cloudflare_dns", Label: "Cloudflare DNS", Category: "dns",
+		Type: "cloudflare_dns", Label: "Cloudflare DNS", Category: "dns", Available: true,
 		Fields: []ProviderField{
 			{Key: "api_token", Label: "API Token", Type: "password", Required: true,
 				HelpText: "需要 Zone:DNS:Edit 权限"},
@@ -205,7 +206,7 @@ var allProviders = []ProviderDef{
 
 	// ---- Deploy Providers ----
 	{
-		Type: "local_file", Label: "本地文件", Category: "deploy",
+		Type: "local_file", Label: "本地文件", Category: "deploy", Available: true,
 		Description: "将证书写入本地文件系统",
 		Fields: []ProviderField{
 			{Key: "cert_path", Label: "证书文件路径", Type: "text", Required: true,
@@ -215,7 +216,7 @@ var allProviders = []ProviderDef{
 		},
 	},
 	{
-		Type: "nginx_ssh", Label: "Nginx (SSH)", Category: "deploy",
+		Type: "nginx_ssh", Label: "Nginx (SSH)", Category: "deploy", Available: true,
 		Description: "通过 SSH 将证书上传至远程 Nginx 服务器并重载",
 		Fields: []ProviderField{
 			{Key: "host", Label: "SSH 主机", Type: "text", Required: true, Placeholder: "192.168.1.100"},
@@ -233,8 +234,8 @@ var allProviders = []ProviderDef{
 		},
 	},
 	{
-		Type: "aliyun_esa_deploy", Label: "阿里云 ESA 证书绑定", Category: "deploy",
-		Description: "将证书上传至阿里云 ESA 并绑定到站点",
+		Type: "aliyun_esa_deploy", Label: "阿里云 ESA 证书绑定", Category: "deploy", Available: false,
+		Description: "将证书上传至阿里云 ESA 并绑定到站点（即将支持）",
 		Fields: []ProviderField{
 			{Key: "access_key_id", Label: "Access Key ID", Type: "text", Required: true},
 			{Key: "access_key_secret", Label: "Access Key Secret", Type: "password", Required: true},
@@ -242,8 +243,8 @@ var allProviders = []ProviderDef{
 		},
 	},
 	{
-		Type: "cloudflare_deploy", Label: "Cloudflare 自定义证书", Category: "deploy",
-		Description: "将证书上传至 Cloudflare 自定义证书",
+		Type: "cloudflare_deploy", Label: "Cloudflare 自定义证书", Category: "deploy", Available: false,
+		Description: "将证书上传至 Cloudflare 自定义证书（即将支持）",
 		Fields: []ProviderField{
 			{Key: "api_token", Label: "API Token", Type: "password", Required: true,
 				HelpText: "需要 Zone:SSL and Certificates:Edit 权限"},
@@ -251,7 +252,8 @@ var allProviders = []ProviderDef{
 		},
 	},
 	{
-		Type: "tencent_eo_deploy", Label: "腾讯云 EdgeOne 证书", Category: "deploy",
+		Type: "tencent_eo_deploy", Label: "腾讯云 EdgeOne 证书", Category: "deploy", Available: false,
+		Description: "即将支持",
 		Fields: []ProviderField{
 			{Key: "secret_id", Label: "SecretId", Type: "text", Required: true},
 			{Key: "secret_key", Label: "SecretKey", Type: "password", Required: true},
@@ -259,8 +261,8 @@ var allProviders = []ProviderDef{
 		},
 	},
 	{
-		Type: "ssh_generic", Label: "SSH 通用部署", Category: "deploy",
-		Description: "通过 SSH 执行自定义部署脚本",
+		Type: "ssh_generic", Label: "SSH 通用部署", Category: "deploy", Available: false,
+		Description: "通过 SSH 执行自定义部署脚本（即将支持）",
 		Fields: []ProviderField{
 			{Key: "host", Label: "SSH 主机", Type: "text", Required: true},
 			{Key: "port", Label: "SSH 端口", Type: "text", Placeholder: "22"},
@@ -274,7 +276,7 @@ var allProviders = []ProviderDef{
 
 	// ---- ACME CA Providers ----
 	{
-		Type: "letsencrypt", Label: "Let's Encrypt", Category: "acme_ca",
+		Type: "letsencrypt", Label: "Let's Encrypt", Category: "acme_ca", Available: true,
 		Description: "免费、自动化证书颁发机构（推荐）",
 		Fields: []ProviderField{
 			{Key: "email", Label: "账户邮箱", Type: "text", Required: true},
@@ -286,7 +288,7 @@ var allProviders = []ProviderDef{
 		},
 	},
 	{
-		Type: "zerossl", Label: "ZeroSSL", Category: "acme_ca",
+		Type: "zerossl", Label: "ZeroSSL", Category: "acme_ca", Available: true,
 		Description: "ZeroSSL ACME 接口，支持商业证书",
 		Fields: []ProviderField{
 			{Key: "email", Label: "账户邮箱", Type: "text", Required: true},
@@ -296,7 +298,7 @@ var allProviders = []ProviderDef{
 		},
 	},
 	{
-		Type: "buypass", Label: "Buypass Go SSL", Category: "acme_ca",
+		Type: "buypass", Label: "Buypass Go SSL", Category: "acme_ca", Available: true,
 		Fields: []ProviderField{
 			{Key: "email", Label: "账户邮箱", Type: "text", Required: true},
 		},

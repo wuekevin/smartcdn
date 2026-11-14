@@ -201,7 +201,10 @@ export default function CredentialsPage() {
                 }
               >
                 {filteredProviders.map(p => (
-                  <Select.Option key={p.type} value={p.type}>{p.label}</Select.Option>
+                  <Select.Option key={p.type} value={p.type}>
+                    {p.label}
+                    {!p.available && <span style={{ marginLeft: 6, fontSize: 11, color: '#86909c' }}>（即将支持）</span>}
+                  </Select.Option>
                 ))}
               </Select>
             </Form.Item>
