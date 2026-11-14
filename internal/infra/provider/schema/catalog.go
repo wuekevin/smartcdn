@@ -234,6 +234,18 @@ var allProviders = []ProviderDef{
 		},
 	},
 	{
+		Type: "baota_panel", Label: "宝塔面板", Category: "deploy", Available: true,
+		Description: "通过宝塔面板 API 将 SSL 证书部署到指定网站",
+		Fields: []ProviderField{
+			{Key: "panel_url", Label: "面板地址", Type: "text", Required: true,
+				Placeholder: "http://1.2.3.4:8888"},
+			{Key: "api_key", Label: "API Key", Type: "password", Required: true,
+				HelpText: "宝塔面板 → 面板设置 → API 接口 中获取"},
+			{Key: "site_name", Label: "网站名称", Type: "text", Required: true,
+				Placeholder: "example.com"},
+		},
+	},
+	{
 		Type: "aliyun_esa_deploy", Label: "阿里云 ESA 证书绑定", Category: "deploy", Available: false,
 		Description: "将证书上传至阿里云 ESA 并绑定到站点（即将支持）",
 		Fields: []ProviderField{

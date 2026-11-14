@@ -41,6 +41,7 @@ import (
 	"github.com/wuekevin/smartcdn/internal/infra/provider/cf_cdn"
 	"github.com/wuekevin/smartcdn/internal/infra/provider/cloudflare"
 	deployreg "github.com/wuekevin/smartcdn/internal/infra/provider/deploy"
+	baotapanel "github.com/wuekevin/smartcdn/internal/infra/provider/deploy/baota_panel"
 	localfile "github.com/wuekevin/smartcdn/internal/infra/provider/deploy/local_file"
 	nginxssh "github.com/wuekevin/smartcdn/internal/infra/provider/deploy/nginx_ssh"
 	"github.com/wuekevin/smartcdn/internal/infra/provider/dnspod"
@@ -159,6 +160,7 @@ func main() {
 	deployRegistry := deployreg.NewRegistry()
 	deployRegistry.RegisterDeploy("local_file", localfile.New)
 	deployRegistry.RegisterDeploy("nginx_ssh", nginxssh.New)
+	deployRegistry.RegisterDeploy("baota_panel", baotapanel.New)
 
 	hub := pubsub.NewHub()
 
@@ -231,6 +233,7 @@ func main() {
 
 	// Background: periodic alert evaluation
 	go runAlertEvaluator(monitorSvc, log)
+	go runCertRenewal(certSvc, log)
 
 	startServer(r, resolvePort(*portFlag, cfg.Port), log)
 }
@@ -301,6 +304,23 @@ func runAlertEvaluator(svc *monapp.Service, log *zap.Logger) {
 	defer ticker.Stop()
 	for range ticker.C {
 		svc.EvaluateAll(context.Background())
+	}
+}
+
+// runCertRenewal 每 12 小时检查一次即将到期的证书并自动续签。
+// 距到期 30 天内且 auto_renew=true 的证书会被触发重签。
+func runCertRenewal(svc *certapp.Service, log *zap.Logger) {
+	ticker := time.NewTicker(12 * time.Hour)
+	defer ticker.Stop()
+	for range ticker.C {
+		count, err := svc.RenewDueSoon(context.Background(), 30, false)
+		if err != nil {
+			log.Warn("cert renewal check failed", zap.Error(err))
+			continue
+		}
+		if count > 0 {
+			log.Info("cert renewal triggered", zap.Int("count", count))
+		}
 	}
 }
 
