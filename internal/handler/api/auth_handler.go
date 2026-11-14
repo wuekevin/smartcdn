@@ -5,8 +5,10 @@ import (
 	"net/http"
 
 	"github.com/gin-gonic/gin"
+	"go.uber.org/zap"
 
 	"github.com/wuekevin/smartcdn/internal/application/auth"
+	"github.com/wuekevin/smartcdn/internal/infra/logger"
 )
 
 type AuthHandler struct {
@@ -41,6 +43,7 @@ func (h *AuthHandler) Login(c *gin.Context) {
 		case errors.Is(err, auth.ErrInvalidCredentials):
 			c.JSON(http.StatusUnauthorized, gin.H{"code": "INVALID_CREDENTIALS"})
 		default:
+			logger.Named("auth").Error("login internal error", zap.Error(err))
 			c.JSON(http.StatusInternalServerError, gin.H{"code": "INTERNAL_ERROR"})
 		}
 		return

@@ -17,6 +17,7 @@ import (
 	"github.com/wuekevin/smartcdn/internal/application/auth"
 	appconfig "github.com/wuekevin/smartcdn/internal/infra/config"
 	certapp "github.com/wuekevin/smartcdn/internal/application/certificate"
+	"github.com/wuekevin/smartcdn/internal/domain/entity"
 	cdnsvc "github.com/wuekevin/smartcdn/internal/application/cdn"
 	domainsvc "github.com/wuekevin/smartcdn/internal/application/domain"
 	migsvc "github.com/wuekevin/smartcdn/internal/application/migration"
@@ -247,6 +248,12 @@ func runMigrations(gdb *gorm.DB, log *zap.Logger) {
 		log.Fatal("goose up", zap.Error(err))
 	}
 	log.Info("database migrations applied")
+
+	// AutoMigrate ensures any columns missing from a setup-wizard-created table
+	// (which used a minimal schema) are added. Safe to run repeatedly.
+	if err := gdb.AutoMigrate(&entity.User{}); err != nil {
+		log.Fatal("auto-migrate user table", zap.Error(err))
+	}
 }
 
 func runAlertEvaluator(svc *monapp.Service, log *zap.Logger) {
