@@ -78,6 +78,10 @@ func (r *UserRepo) Create(ctx context.Context, u *entity.User) error {
 	return r.db.WithContext(ctx).Create(u).Error
 }
 
+func (r *UserRepo) Update(ctx context.Context, u *entity.User) error {
+	return r.db.WithContext(ctx).Model(u).Select("password", "email", "is_active").Updates(u).Error
+}
+
 func (r *UserRepo) SoftDelete(ctx context.Context, id uint64) error {
 	return r.db.WithContext(ctx).Model(&entity.User{}).
 		Where("id = ? AND deleted_at IS NULL", id).

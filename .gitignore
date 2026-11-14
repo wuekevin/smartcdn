@@ -39,5 +39,6 @@ coverage.html
 # Wire generated
 internal/wire_gen.go
 /smartcdn
+/smartcdn_linux
 /node-agent
 /probe-agent

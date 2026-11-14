@@ -364,42 +364,97 @@ func (s *Service) sendNotification(ch *entity.AlertChannel, a *entity.Alert) {
 	_ = json.Unmarshal([]byte(ch.ConfigJSON), &cfg)
 
 	switch ch.Type {
-	case entity.AlertChannelWebhook, entity.AlertChannelDingTalk, entity.AlertChannelSlack:
+	case entity.AlertChannelWebhook, entity.AlertChannelDingTalk, entity.AlertChannelSlack, entity.AlertChannelFeishu:
 		s.sendWebhook(cfg, ch.Type, a)
+	case entity.AlertChannelTelegram:
+		s.sendTelegram(cfg, a)
 	case entity.AlertChannelEmail:
 		// Email requires SMTP integration; log for now.
 	}
 }
 
-func (s *Service) sendWebhook(cfg map[string]interface{}, chType entity.AlertChannelType, a *entity.Alert) {
-	url, _ := cfg["url"].(string)
-	if url == "" {
+func renderTemplate(tmpl string, a *entity.Alert) string {
+	if tmpl == "" {
+		return fmt.Sprintf("[%s] %s\n状态: %s\n时间: %s",
+			strings.ToUpper(string(a.Severity)), a.Message,
+			string(a.Status), a.FiredAt.Format("2006-01-02 15:04:05"))
+	}
+	r := strings.NewReplacer(
+		"{{.RuleName}}", a.RuleName,
+		"{{.Severity}}", string(a.Severity),
+		"{{.Status}}", string(a.Status),
+		"{{.Message}}", a.Message,
+		"{{.FiredAt}}", a.FiredAt.Format("2006-01-02 15:04:05"),
+		"{{.MetricType}}", string(a.MetricType),
+		"{{.TriggerValue}}", fmt.Sprintf("%.2f", a.TriggerValue),
+		"{{.Threshold}}", fmt.Sprintf("%.2f", a.Threshold),
+	)
+	return r.Replace(tmpl)
+}
+
+func (s *Service) sendTelegram(cfg map[string]interface{}, a *entity.Alert) {
+	botToken, _ := cfg["bot_token"].(string)
+	chatID, _ := cfg["chat_id"].(string)
+	if botToken == "" || chatID == "" {
 		return
 	}
+	tmpl, _ := cfg["message_template"].(string)
+	text := renderTemplate(tmpl, a)
+
+	apiURL := fmt.Sprintf("https://api.telegram.org/bot%s/sendMessage", botToken)
+	payload, _ := json.Marshal(map[string]interface{}{
+		"chat_id":    chatID,
+		"text":       text,
+		"parse_mode": "Markdown",
+	})
+	req, err := http.NewRequestWithContext(context.Background(), http.MethodPost, apiURL, bytes.NewReader(payload))
+	if err != nil {
+		return
+	}
+	req.Header.Set("Content-Type", "application/json")
+	resp, err := s.http.Do(req)
+	if err != nil {
+		return
+	}
+	resp.Body.Close()
+}
+
+func (s *Service) sendWebhook(cfg map[string]interface{}, chType entity.AlertChannelType, a *entity.Alert) {
+	webhookURL, _ := cfg["webhook_url"].(string)
+	if webhookURL == "" {
+		webhookURL, _ = cfg["url"].(string)
+	}
+	if webhookURL == "" {
+		return
+	}
+	tmpl, _ := cfg["message_template"].(string)
+	text := renderTemplate(tmpl, a)
 
 	var payload map[string]interface{}
 	switch chType {
 	case entity.AlertChannelDingTalk:
 		payload = map[string]interface{}{
 			"msgtype": "text",
-			"text": map[string]string{
-				"content": fmt.Sprintf("[%s] %s", strings.ToUpper(string(a.Severity)), a.Message),
-			},
+			"text":    map[string]string{"content": text},
 		}
 	case entity.AlertChannelSlack:
+		payload = map[string]interface{}{"text": text}
+	case entity.AlertChannelFeishu:
 		payload = map[string]interface{}{
-			"text": fmt.Sprintf(":warning: *[%s]* %s", strings.ToUpper(string(a.Severity)), a.Message),
+			"msg_type": "text",
+			"content":  map[string]string{"text": text},
 		}
 	default:
 		payload = map[string]interface{}{
-			"alert_id":   a.ID,
-			"rule_name":  a.RuleName,
-			"severity":   a.Severity,
-			"status":     a.Status,
-			"message":    a.Message,
-			"fired_at":   a.FiredAt,
+			"alert_id":  a.ID,
+			"rule_name": a.RuleName,
+			"severity":  a.Severity,
+			"status":    a.Status,
+			"message":   text,
+			"fired_at":  a.FiredAt,
 		}
 	}
+	url := webhookURL
 
 	body, _ := json.Marshal(payload)
 	req, err := http.NewRequestWithContext(context.Background(), http.MethodPost, url, bytes.NewReader(body))

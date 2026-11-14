@@ -24,6 +24,7 @@ func (h *UserHandler) RegisterRoutes(r *gin.RouterGroup) {
 	g := r.Group("/users")
 	g.POST("", h.Create)
 	g.GET("", h.List)
+	g.PUT("/:id", h.Update)
 	g.DELETE("/:id", h.Delete)
 }
 
@@ -81,6 +82,55 @@ func (h *UserHandler) List(c *gin.Context) {
 		})
 	}
 	c.JSON(http.StatusOK, gin.H{"items": items})
+}
+
+func (h *UserHandler) Update(c *gin.Context) {
+	idStr := c.Param("id")
+	id, err := strconv.ParseUint(idStr, 10, 64)
+	if err != nil || id == 0 {
+		c.JSON(http.StatusBadRequest, gin.H{"message": "invalid id"})
+		return
+	}
+	var req struct {
+		Password string `json:"password"`
+		Email    string `json:"email"`
+		IsActive *bool  `json:"is_active"`
+	}
+	if err := c.ShouldBindJSON(&req); err != nil {
+		c.JSON(http.StatusBadRequest, gin.H{"message": err.Error()})
+		return
+	}
+	u, err := h.users.FindByID(c.Request.Context(), id)
+	if err != nil {
+		c.JSON(http.StatusNotFound, gin.H{"message": "user not found"})
+		return
+	}
+	if req.Password != "" {
+		if len(req.Password) < 6 {
+			c.JSON(http.StatusBadRequest, gin.H{"message": "password too short"})
+			return
+		}
+		hash, err := bcrypt.GenerateFromPassword([]byte(req.Password), bcrypt.DefaultCost)
+		if err != nil {
+			c.JSON(http.StatusInternalServerError, gin.H{"message": "hash failed"})
+			return
+		}
+		u.Password = string(hash)
+	}
+	if req.Email != "" {
+		u.Email = req.Email
+	}
+	if req.IsActive != nil {
+		u.IsActive = *req.IsActive
+	}
+	if err := h.users.Update(c.Request.Context(), u); err != nil {
+		c.JSON(http.StatusInternalServerError, gin.H{"message": err.Error()})
+		return
+	}
+	c.JSON(http.StatusOK, gin.H{
+		"id": u.ID, "username": u.Username, "email": u.Email,
+		"is_active": u.IsActive, "updated_at": u.UpdatedAt,
+	})
 }
 
 func (h *UserHandler) Delete(c *gin.Context) {

@@ -72,7 +72,7 @@ export default function NodesPage() {
     setEditingRow(row);
     editForm.setFieldsValue({
       name: row.name, isp: row.isp, region: row.region,
-      origin_addr: row.https_latency_ms, origin_port: 80, is_active: row.status === 'active',
+      origin_addr: '', origin_port: 80, is_active: row.status === 'active',
     });
     client.get(`/nodes/${row.id}`).then(r => {
       editForm.setFieldsValue({

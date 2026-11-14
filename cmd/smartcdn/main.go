@@ -34,6 +34,11 @@ import (
 	infradb "github.com/wuekevin/smartcdn/internal/infra/db"
 	"github.com/wuekevin/smartcdn/internal/infra/logger"
 	infraprovider "github.com/wuekevin/smartcdn/internal/infra/provider"
+	"github.com/wuekevin/smartcdn/internal/infra/provider/aliyun"
+	"github.com/wuekevin/smartcdn/internal/infra/provider/aliyun_cdn"
+	"github.com/wuekevin/smartcdn/internal/infra/provider/cf_cdn"
+	"github.com/wuekevin/smartcdn/internal/infra/provider/cloudflare"
+	"github.com/wuekevin/smartcdn/internal/infra/provider/dnspod"
 	infraredis "github.com/wuekevin/smartcdn/internal/infra/redis"
 	"github.com/wuekevin/smartcdn/internal/infra/pubsub"
 	"github.com/wuekevin/smartcdn/internal/infra/repo"
@@ -135,7 +140,14 @@ func main() {
 
 	// --- Infra ---
 	dnsRegistry := infraprovider.NewRegistry()
+	dnsRegistry.Register(port.ProviderAliyun, aliyun.NewAliyunDNSProvider)
+	dnsRegistry.Register(port.ProviderDNSPod, dnspod.NewDNSPodProvider)
+	dnsRegistry.Register(port.ProviderCloudflare, cloudflare.NewCloudflareDNSProvider)
+
 	cdnRegistry := infraprovider.NewCDNRegistry()
+	cdnRegistry.RegisterCDN(port.CDNProviderAliyun, aliyuncdn.NewAliyunCDNProvider)
+	cdnRegistry.RegisterCDN(port.CDNProviderCloudflare, cfcdn.NewCloudflareCDNProvider)
+
 	hub := pubsub.NewHub()
 
 	// --- Application services ---

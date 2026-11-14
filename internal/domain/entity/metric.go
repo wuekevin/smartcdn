@@ -112,6 +112,8 @@ const (
 	AlertChannelEmail    AlertChannelType = "email"
 	AlertChannelDingTalk AlertChannelType = "dingtalk"
 	AlertChannelSlack    AlertChannelType = "slack"
+	AlertChannelTelegram AlertChannelType = "telegram"
+	AlertChannelFeishu   AlertChannelType = "feishu"
 )
 
 // AlertChannel stores the configuration for a notification endpoint.

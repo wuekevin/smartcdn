@@ -1,8 +1,8 @@
 import { useState } from 'react';
 import {
-  Button, Card, Table, Tag, Typography, Popconfirm, Message, Space, Modal, Form, Input,
+  Button, Card, Table, Tag, Typography, Popconfirm, Message, Space, Modal, Form, Input, Switch,
 } from '@arco-design/web-react';
-import { IconPlus, IconRefresh } from '@arco-design/web-react/icon';
+import { IconPlus, IconRefresh, IconEdit } from '@arco-design/web-react/icon';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import client from '../../api/client';
 
@@ -14,7 +14,10 @@ export default function UsersPage() {
   const qc = useQueryClient();
   const myId = Number(localStorage.getItem('user_id') ?? 0);
   const [visible, setVisible] = useState(false);
+  const [editVisible, setEditVisible] = useState(false);
+  const [editingRow, setEditingRow] = useState<User | null>(null);
   const [form] = Form.useForm();
+  const [editForm] = Form.useForm();
 
   const { data, isLoading } = useQuery({
     queryKey: ['users'],
@@ -36,6 +39,22 @@ export default function UsersPage() {
     },
   });
 
+  const updateMut = useMutation({
+    mutationFn: ({ id, ...body }: { id: number; password?: string; email?: string; is_active?: boolean }) =>
+      client.put(`/users/${id}`, body),
+    onSuccess: () => {
+      qc.invalidateQueries({ queryKey: ['users'] });
+      Message.success('已更新');
+      setEditVisible(false);
+      editForm.resetFields();
+      setEditingRow(null);
+    },
+    onError: (e: unknown) => {
+      const msg = (e as { response?: { data?: { message?: string } } })?.response?.data?.message;
+      Message.error(msg || '更新失败');
+    },
+  });
+
   const deleteMut = useMutation({
     mutationFn: (id: number) => client.delete(`/users/${id}`),
     onSuccess: () => { qc.invalidateQueries({ queryKey: ['users'] }); Message.success('已删除'); },
@@ -53,9 +72,16 @@ export default function UsersPage() {
     { title: '创建时间', dataIndex: 'created_at', width: 180 },
     {
       title: '操作', render: (_: unknown, row: User) => (
-        <Popconfirm title="确认删除此用户？" onOk={() => deleteMut.mutate(row.id)} disabled={row.id === myId}>
-          <Button size="mini" type="text" status="danger" disabled={row.id === myId}>删除</Button>
-        </Popconfirm>
+        <Space>
+          <Button size="mini" type="text" icon={<IconEdit />} onClick={() => {
+            setEditingRow(row);
+            editForm.setFieldsValue({ email: row.email, is_active: row.is_active });
+            setEditVisible(true);
+          }}>编辑</Button>
+          <Popconfirm title="确认删除此用户？" onOk={() => deleteMut.mutate(row.id)} disabled={row.id === myId}>
+            <Button size="mini" type="text" status="danger" disabled={row.id === myId}>删除</Button>
+          </Popconfirm>
+        </Space>
       ),
     },
   ];
@@ -91,6 +117,32 @@ export default function UsersPage() {
           </Form.Item>
           <Form.Item label="邮箱（可选）" field="email">
             <Input placeholder="admin@example.com" />
+          </Form.Item>
+        </Form>
+      </Modal>
+
+      <Modal
+        title={`编辑用户：${editingRow?.username ?? ''}`}
+        visible={editVisible}
+        onOk={() => editForm.validate().then(vals => editingRow && updateMut.mutate({
+          id: editingRow.id,
+          ...(vals.password ? { password: vals.password } : {}),
+          ...(vals.email !== undefined ? { email: vals.email } : {}),
+          is_active: vals.is_active,
+        }))}
+        confirmLoading={updateMut.isPending}
+        onCancel={() => { setEditVisible(false); editForm.resetFields(); setEditingRow(null); }}
+        unmountOnExit
+      >
+        <Form form={editForm} layout="vertical" autoComplete="off">
+          <Form.Item label="邮箱" field="email">
+            <Input placeholder="admin@example.com" />
+          </Form.Item>
+          <Form.Item label="新密码（留空不修改）" field="password">
+            <Input.Password placeholder="至少 6 个字符" autoComplete="new-password" />
+          </Form.Item>
+          <Form.Item label="启用状态" field="is_active" triggerPropName="checked">
+            <Switch checkedText="启用" uncheckedText="禁用" />
           </Form.Item>
         </Form>
       </Modal>
