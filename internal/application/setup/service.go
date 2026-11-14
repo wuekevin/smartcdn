@@ -159,16 +159,10 @@ func buildDSN(input entity.SetupCompleteInput) string {
 }
 
 func runMigrations(db *gorm.DB) error {
-	// goose migrations are run via the CLI or migration runner at startup.
-	// Here we do a minimal auto-migrate of the users table so the setup can create the admin.
-	type User struct {
-		ID        uint64 `gorm:"primarykey;autoIncrement"`
-		Username  string `gorm:"uniqueIndex;size:64;not null"`
-		Password  string `gorm:"not null"`
-		CreatedAt time.Time
-		UpdatedAt time.Time
-	}
-	return db.AutoMigrate(&User{})
+	// AutoMigrate the full User schema so the main app's queries (which reference
+	// deleted_at, login_failed_count, etc.) work correctly after setup.
+	// Goose runs CREATE TABLE IF NOT EXISTS on startup and will skip the already-created table.
+	return db.AutoMigrate(&entity.User{})
 }
 
 func createAdminUser(db *gorm.DB, username, password string) error {

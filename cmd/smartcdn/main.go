@@ -86,6 +86,9 @@ func main() {
 		log.Fatal("encryption key error", zap.Error(err))
 	}
 
+	// Use encrypt key as JWT signing secret (both are derived from the same configured key).
+	auth.SetJWTSecret([]byte(cfg.EncryptKey))
+
 	gdb := mustConnectDB(cfg, log)
 	rdb := mustConnectRedis(cfg, log)
 

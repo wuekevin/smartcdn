@@ -2,7 +2,7 @@ package auth
 
 import (
 	"fmt"
-	"os"
+	"sync"
 	"time"
 
 	"github.com/golang-jwt/jwt/v5"
@@ -16,13 +16,23 @@ type Claims struct {
 	jwt.RegisteredClaims
 }
 
+var (
+	jwtKey     []byte
+	jwtKeyOnce sync.Once
+	jwtKeyMu   sync.RWMutex
+)
+
+// SetJWTSecret configures the JWT signing key. Called at startup from main.
+func SetJWTSecret(key []byte) {
+	jwtKeyMu.Lock()
+	defer jwtKeyMu.Unlock()
+	jwtKey = key
+}
+
 func jwtSecret() []byte {
-	s := os.Getenv("SMARTCDN_JWT_SECRET")
-	if s == "" {
-		// 若未配置，使用加密密钥的前32字节派生；生产环境应显式设置
-		s = os.Getenv("SMARTCDN_ENCRYPT_KEY")
-	}
-	return []byte(s)
+	jwtKeyMu.RLock()
+	defer jwtKeyMu.RUnlock()
+	return jwtKey
 }
 
 // IssueToken creates a signed JWT for the given user.
