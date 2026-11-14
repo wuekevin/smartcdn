@@ -1,6 +1,6 @@
 import { useState } from 'react';
 import {
-  Button, Card, Table, Tag, Typography, Space, Popconfirm, Message, Modal, Form, Input, Switch, Select,
+  Button, Card, Table, Tag, Typography, Space, Popconfirm, Message, Modal, Form, Input, InputNumber, Switch, Select,
 } from '@arco-design/web-react';
 import { IconPlus, IconRefresh, IconEdit } from '@arco-design/web-react/icon';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
@@ -173,7 +173,7 @@ export default function DomainsPage() {
             <Switch checkedText="启用" uncheckedText="禁用" />
           </Form.Item>
           <Form.Item label="最大发布 IP 数" field="max_publish_ips">
-            <Input type="number" placeholder="1" />
+            <InputNumber min={1} style={{ width: '100%' }} />
           </Form.Item>
         </Form>
       </Modal>
