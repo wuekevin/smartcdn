@@ -150,9 +150,12 @@ func (p *AliyunDNSProvider) ListZones(ctx context.Context) ([]port.DNSZone, erro
 			break
 		}
 		for _, d := range resp.Body.Domains.Domain {
+			// 阿里云记录查询 API（DescribeDomainRecords）以域名作为标识符，
+			// 因此 ID 也使用域名而非数字 DomainId。
+			name := tea.StringValue(d.DomainName)
 			zones = append(zones, port.DNSZone{
-				ID:     tea.StringValue(d.DomainId),
-				Domain: tea.StringValue(d.DomainName),
+				ID:     name,
+				Domain: name,
 			})
 		}
 		total := tea.Int64Value(resp.Body.TotalCount)
