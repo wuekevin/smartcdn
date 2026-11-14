@@ -11,6 +11,7 @@ type CertificateRepository interface {
 	Create(ctx context.Context, c *entity.Certificate) error
 	FindByID(ctx context.Context, id uint64) (*entity.Certificate, error)
 	FindByDomainID(ctx context.Context, domainID uint64) ([]entity.Certificate, error)
+	ListAll(ctx context.Context, afterID uint64, limit int) ([]entity.Certificate, error)
 	ListDueForRenewal(ctx context.Context, daysThreshold int, limit int) ([]entity.Certificate, error)
 	Update(ctx context.Context, c *entity.Certificate) error
 	Delete(ctx context.Context, id uint64) error

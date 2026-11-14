@@ -68,17 +68,24 @@ func (h *CertificateHandler) Create(c *gin.Context) {
 }
 
 func (h *CertificateHandler) List(c *gin.Context) {
-	domainID, err := parseUint64Query(c, "domain_id")
-	if err != nil || domainID == 0 {
-		c.JSON(http.StatusBadRequest, gin.H{"error": "domain_id required"})
+	domainID, _ := parseUint64Query(c, "domain_id")
+	if domainID > 0 {
+		views, err := h.svc.ListCertificates(c.Request.Context(), domainID)
+		if err != nil {
+			c.JSON(http.StatusInternalServerError, gin.H{"error": err.Error()})
+			return
+		}
+		c.JSON(http.StatusOK, gin.H{"items": views})
 		return
 	}
-	views, err := h.svc.ListCertificates(c.Request.Context(), domainID)
+	afterID, _ := parseUint64Query(c, "after_id")
+	limit, _ := parseIntQuery(c, "limit", 50)
+	views, err := h.svc.ListAllCertificates(c.Request.Context(), afterID, limit)
 	if err != nil {
 		c.JSON(http.StatusInternalServerError, gin.H{"error": err.Error()})
 		return
 	}
-	c.JSON(http.StatusOK, gin.H{"data": views})
+	c.JSON(http.StatusOK, gin.H{"items": views})
 }
 
 func (h *CertificateHandler) Get(c *gin.Context) {
@@ -150,7 +157,7 @@ func (h *CertificateHandler) ListDeployTargets(c *gin.Context) {
 		c.JSON(http.StatusInternalServerError, gin.H{"error": err.Error()})
 		return
 	}
-	c.JSON(http.StatusOK, gin.H{"data": targets})
+	c.JSON(http.StatusOK, gin.H{"items": targets})
 }
 
 type addDeployTargetReq struct {

@@ -57,7 +57,7 @@ func (h *DNSAccountHandler) List(c *gin.Context) {
 		c.JSON(http.StatusInternalServerError, gin.H{"error": err.Error()})
 		return
 	}
-	c.JSON(http.StatusOK, gin.H{"data": views, "count": len(views)})
+	c.JSON(http.StatusOK, gin.H{"items": views})
 }
 
 func (h *DNSAccountHandler) Get(c *gin.Context) {

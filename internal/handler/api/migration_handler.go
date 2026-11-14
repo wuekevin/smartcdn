@@ -59,7 +59,7 @@ func (h *MigrationHandler) StartMigration(c *gin.Context) {
 
 // GET /api/v1/domains/:id/migrations  (placeholder; engine has no ListByDomain on handler yet)
 func (h *MigrationHandler) ListMigrations(c *gin.Context) {
-	c.JSON(http.StatusOK, gin.H{"data": []interface{}{}})
+	c.JSON(http.StatusOK, gin.H{"items": []interface{}{}})
 }
 
 // POST /api/v1/domains/:id/migrations/:jobid/cutover

@@ -39,6 +39,18 @@ func (r *CertificateRepo) FindByDomainID(ctx context.Context, domainID uint64) (
 		Order("id DESC").Find(&cs).Error
 }
 
+func (r *CertificateRepo) ListAll(ctx context.Context, afterID uint64, limit int) ([]entity.Certificate, error) {
+	if limit <= 0 || limit > 200 {
+		limit = 50
+	}
+	q := r.db.WithContext(ctx).Where("deleted_at IS NULL").Order("id DESC").Limit(limit)
+	if afterID > 0 {
+		q = q.Where("id < ?", afterID)
+	}
+	var cs []entity.Certificate
+	return cs, q.Find(&cs).Error
+}
+
 func (r *CertificateRepo) ListDueForRenewal(ctx context.Context, daysThreshold int, limit int) ([]entity.Certificate, error) {
 	if limit <= 0 {
 		limit = 50

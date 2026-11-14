@@ -1,6 +1,7 @@
 package api
 
 import (
+	"encoding/json"
 	"net/http"
 
 	"github.com/gin-gonic/gin"
@@ -44,12 +45,21 @@ func (h *CDNHandler) RegisterRoutes(r *gin.RouterGroup) {
 
 // POST /api/v1/cdn/accounts
 func (h *CDNHandler) CreateAccount(c *gin.Context) {
-	var input cdnsvc.CreateAccountInput
-	if err := c.ShouldBindJSON(&input); err != nil {
+	var req struct {
+		Name         string            `json:"name" binding:"required"`
+		ProviderType string            `json:"provider_type" binding:"required"`
+		Credentials  map[string]string `json:"credentials" binding:"required"`
+	}
+	if err := c.ShouldBindJSON(&req); err != nil {
 		c.JSON(http.StatusBadRequest, gin.H{"error": err.Error()})
 		return
 	}
-	v, err := h.svc.CreateAccount(c.Request.Context(), input)
+	credBytes, _ := json.Marshal(req.Credentials)
+	v, err := h.svc.CreateAccount(c.Request.Context(), cdnsvc.CreateAccountInput{
+		Name:         req.Name,
+		ProviderType: req.ProviderType,
+		Credentials:  credBytes,
+	})
 	if err != nil {
 		c.JSON(http.StatusInternalServerError, gin.H{"error": err.Error()})
 		return
@@ -66,7 +76,7 @@ func (h *CDNHandler) ListAccounts(c *gin.Context) {
 		c.JSON(http.StatusInternalServerError, gin.H{"error": err.Error()})
 		return
 	}
-	c.JSON(http.StatusOK, gin.H{"data": views})
+	c.JSON(http.StatusOK, gin.H{"items": views})
 }
 
 // GET /api/v1/cdn/accounts/:aid
@@ -104,12 +114,24 @@ func (h *CDNHandler) ValidateAccount(c *gin.Context) {
 
 // POST /api/v1/cdn/domains
 func (h *CDNHandler) AddDomain(c *gin.Context) {
-	var input cdnsvc.AddDomainInput
-	if err := c.ShouldBindJSON(&input); err != nil {
+	var req struct {
+		AccountID  uint64 `json:"account_id" binding:"required"`
+		DomainName string `json:"domain_name" binding:"required"`
+		OriginAddr string `json:"origin_addr"`
+		OriginPort int    `json:"origin_port"`
+		Protocol   string `json:"protocol"`
+	}
+	if err := c.ShouldBindJSON(&req); err != nil {
 		c.JSON(http.StatusBadRequest, gin.H{"error": err.Error()})
 		return
 	}
-	v, err := h.svc.AddDomain(c.Request.Context(), input)
+	v, err := h.svc.AddDomain(c.Request.Context(), cdnsvc.AddDomainInput{
+		AccountID:  req.AccountID,
+		DomainName: req.DomainName,
+		OriginAddr: req.OriginAddr,
+		OriginPort: req.OriginPort,
+		Protocol:   req.Protocol,
+	})
 	if err != nil {
 		if err == cdnsvc.ErrAccountNotFound {
 			c.JSON(http.StatusNotFound, gin.H{"error": "cdn account not found"})
@@ -130,7 +152,7 @@ func (h *CDNHandler) ListDomains(c *gin.Context) {
 		c.JSON(http.StatusInternalServerError, gin.H{"error": err.Error()})
 		return
 	}
-	c.JSON(http.StatusOK, gin.H{"data": views})
+	c.JSON(http.StatusOK, gin.H{"items": views})
 }
 
 // GET /api/v1/cdn/domains/:did
@@ -275,7 +297,7 @@ func (h *CDNHandler) ListCustomHostnames(c *gin.Context) {
 		c.JSON(http.StatusInternalServerError, gin.H{"error": err.Error()})
 		return
 	}
-	c.JSON(http.StatusOK, gin.H{"data": views})
+	c.JSON(http.StatusOK, gin.H{"items": views})
 }
 
 // GET /api/v1/cdn/domains/:did/hostnames/:hid

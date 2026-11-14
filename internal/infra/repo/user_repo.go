@@ -74,6 +74,10 @@ func (r *UserRepo) List(ctx context.Context, afterID uint64, limit int) ([]entit
 	return users, q.Find(&users).Error
 }
 
+func (r *UserRepo) Create(ctx context.Context, u *entity.User) error {
+	return r.db.WithContext(ctx).Create(u).Error
+}
+
 func (r *UserRepo) SoftDelete(ctx context.Context, id uint64) error {
 	return r.db.WithContext(ctx).Model(&entity.User{}).
 		Where("id = ? AND deleted_at IS NULL", id).

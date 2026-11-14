@@ -64,7 +64,7 @@ func (h *DomainHandler) ListDomains(c *gin.Context) {
 		c.JSON(http.StatusInternalServerError, gin.H{"error": err.Error()})
 		return
 	}
-	c.JSON(http.StatusOK, gin.H{"data": views})
+	c.JSON(http.StatusOK, gin.H{"items": views})
 }
 
 // GET /api/v1/domains/:id
@@ -138,7 +138,7 @@ func (h *DomainHandler) ListRecords(c *gin.Context) {
 		c.JSON(http.StatusInternalServerError, gin.H{"error": err.Error()})
 		return
 	}
-	c.JSON(http.StatusOK, gin.H{"data": views})
+	c.JSON(http.StatusOK, gin.H{"items": views})
 }
 
 // PUT /api/v1/domains/:id/records/:rid
@@ -229,7 +229,7 @@ func (h *DomainHandler) ListSnapshots(c *gin.Context) {
 		c.JSON(http.StatusInternalServerError, gin.H{"error": err.Error()})
 		return
 	}
-	c.JSON(http.StatusOK, gin.H{"data": views})
+	c.JSON(http.StatusOK, gin.H{"items": views})
 }
 
 // --- helpers ---

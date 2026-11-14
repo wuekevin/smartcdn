@@ -1,28 +1,43 @@
+import { useState } from 'react';
 import {
-  Button, Card, Table, Tag, Typography, Space, Popconfirm, Message,
+  Button, Card, Table, Tag, Typography, Space, Popconfirm, Message, Modal, Form, Input, Switch, Select,
 } from '@arco-design/web-react';
 import { IconPlus, IconRefresh } from '@arco-design/web-react/icon';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
-import { useState } from 'react';
 import client from '../../api/client';
 
 interface Domain {
-  id: number;
-  name: string;
-  status: string;
-  icp_filed: boolean;
-  dns_account_id: number;
-  created_at: string;
+  id: number; name: string; status: string; icp_filed: boolean; dns_account_id: number; created_at: string;
 }
+interface DNSAccount { id: number; name: string; }
 
 export default function DomainsPage() {
   const qc = useQueryClient();
-  const [afterID] = useState(0);
+  const [visible, setVisible] = useState(false);
+  const [form] = Form.useForm();
 
   const { data, isLoading } = useQuery({
-    queryKey: ['domains', afterID],
-    queryFn: () =>
-      client.get('/domains', { params: { after_id: afterID || undefined, limit: 20 } }).then((r) => r.data),
+    queryKey: ['domains'],
+    queryFn: () => client.get('/domains', { params: { limit: 20 } }).then(r => r.data),
+  });
+
+  const { data: accountsData } = useQuery({
+    queryKey: ['dns-accounts'],
+    queryFn: () => client.get('/dns-accounts').then(r => r.data),
+  });
+
+  const createMut = useMutation({
+    mutationFn: (body: unknown) => client.post('/domains', body),
+    onSuccess: () => {
+      qc.invalidateQueries({ queryKey: ['domains'] });
+      Message.success('域名已添加');
+      setVisible(false);
+      form.resetFields();
+    },
+    onError: (e: unknown) => {
+      const msg = (e as { response?: { data?: { error?: string } } })?.response?.data?.error;
+      Message.error(msg || '添加失败');
+    },
   });
 
   const deleteMut = useMutation({
@@ -30,6 +45,8 @@ export default function DomainsPage() {
     onSuccess: () => { qc.invalidateQueries({ queryKey: ['domains'] }); Message.success('域名已删除'); },
     onError: () => Message.error('删除失败'),
   });
+
+  const accounts: DNSAccount[] = accountsData?.items ?? [];
 
   const columns = [
     { title: 'ID', dataIndex: 'id', width: 80 },
@@ -55,22 +72,41 @@ export default function DomainsPage() {
   ];
 
   return (
-    <Card
-      title={<Typography.Title heading={6} style={{ margin: 0 }}>域名列表</Typography.Title>}
-      extra={
-        <Space>
-          <Button icon={<IconRefresh />} onClick={() => qc.invalidateQueries({ queryKey: ['domains'] })} />
-          <Button type="primary" icon={<IconPlus />}>添加域名</Button>
-        </Space>
-      }
-    >
-      <Table
-        loading={isLoading}
-        columns={columns}
-        data={data?.items ?? []}
-        rowKey="id"
-        pagination={false}
-      />
-    </Card>
+    <>
+      <Card
+        title={<Typography.Title heading={6} style={{ margin: 0 }}>域名列表</Typography.Title>}
+        extra={
+          <Space>
+            <Button icon={<IconRefresh />} onClick={() => qc.invalidateQueries({ queryKey: ['domains'] })} />
+            <Button type="primary" icon={<IconPlus />} onClick={() => setVisible(true)}>添加域名</Button>
+          </Space>
+        }
+      >
+        <Table loading={isLoading} columns={columns} data={data?.items ?? []} rowKey="id" pagination={false} />
+      </Card>
+
+      <Modal
+        title="添加域名"
+        visible={visible}
+        onOk={() => form.validate().then(vals => createMut.mutate(vals))}
+        confirmLoading={createMut.isPending}
+        onCancel={() => { setVisible(false); form.resetFields(); }}
+        unmountOnExit
+      >
+        <Form form={form} layout="vertical">
+          <Form.Item label="域名" field="name" rules={[{ required: true, message: '请输入域名' }]}>
+            <Input placeholder="example.com" />
+          </Form.Item>
+          <Form.Item label="DNS 账户" field="account_id" rules={[{ required: true, message: '请选择 DNS 账户' }]}>
+            <Select placeholder="选择 DNS 账户">
+              {accounts.map(a => <Select.Option key={a.id} value={a.id}>{a.name}</Select.Option>)}
+            </Select>
+          </Form.Item>
+          <Form.Item label="ICP 备案" field="icp_filed" triggerPropName="checked" initialValue={false}>
+            <Switch />
+          </Form.Item>
+        </Form>
+      </Modal>
+    </>
   );
 }

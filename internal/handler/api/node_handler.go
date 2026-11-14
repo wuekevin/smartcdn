@@ -84,7 +84,7 @@ func (h *NodeHandler) ListNodes(c *gin.Context) {
 		c.JSON(http.StatusInternalServerError, gin.H{"error": err.Error()})
 		return
 	}
-	c.JSON(http.StatusOK, gin.H{"data": views})
+	c.JSON(http.StatusOK, gin.H{"items": views})
 }
 
 func (h *NodeHandler) GetNode(c *gin.Context) {
@@ -225,7 +225,7 @@ func (h *NodeHandler) ListPools(c *gin.Context) {
 		c.JSON(http.StatusInternalServerError, gin.H{"error": err.Error()})
 		return
 	}
-	c.JSON(http.StatusOK, gin.H{"data": views})
+	c.JSON(http.StatusOK, gin.H{"items": views})
 }
 
 func (h *NodeHandler) GetPool(c *gin.Context) {

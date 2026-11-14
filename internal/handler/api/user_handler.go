@@ -6,7 +6,9 @@ import (
 	"time"
 
 	"github.com/gin-gonic/gin"
+	"golang.org/x/crypto/bcrypt"
 
+	"github.com/wuekevin/smartcdn/internal/domain/entity"
 	"github.com/wuekevin/smartcdn/internal/infra/repo"
 )
 
@@ -20,8 +22,35 @@ func NewUserHandler(users *repo.UserRepo) *UserHandler {
 
 func (h *UserHandler) RegisterRoutes(r *gin.RouterGroup) {
 	g := r.Group("/users")
+	g.POST("", h.Create)
 	g.GET("", h.List)
 	g.DELETE("/:id", h.Delete)
+}
+
+func (h *UserHandler) Create(c *gin.Context) {
+	var req struct {
+		Username string `json:"username" binding:"required,min=3,max=64"`
+		Password string `json:"password" binding:"required,min=6"`
+		Email    string `json:"email"`
+	}
+	if err := c.ShouldBindJSON(&req); err != nil {
+		c.JSON(http.StatusBadRequest, gin.H{"error": err.Error()})
+		return
+	}
+	hash, err := bcrypt.GenerateFromPassword([]byte(req.Password), bcrypt.DefaultCost)
+	if err != nil {
+		c.JSON(http.StatusInternalServerError, gin.H{"error": "password hash failed"})
+		return
+	}
+	u := &entity.User{Username: req.Username, Password: string(hash), Email: req.Email, IsActive: true}
+	if err := h.users.Create(c.Request.Context(), u); err != nil {
+		c.JSON(http.StatusInternalServerError, gin.H{"error": err.Error()})
+		return
+	}
+	c.JSON(http.StatusCreated, gin.H{
+		"id": u.ID, "username": u.Username, "email": u.Email,
+		"is_active": u.IsActive, "created_at": u.CreatedAt,
+	})
 }
 
 func (h *UserHandler) List(c *gin.Context) {

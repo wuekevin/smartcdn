@@ -1,18 +1,25 @@
 import { useState } from 'react';
-import { Button, Card, Table, Tag, Typography, Space, Popconfirm, Message, Select } from '@arco-design/web-react';
-import { IconRefresh } from '@arco-design/web-react/icon';
+import {
+  Button, Card, Table, Tag, Typography, Space, Popconfirm, Message, Modal, Form, Input, Select, InputNumber,
+} from '@arco-design/web-react';
+import { IconPlus, IconRefresh, IconEdit } from '@arco-design/web-react/icon';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import client from '../../api/client';
 
 interface Domain { id: number; name: string; }
 interface DNSRecord {
-  id: number; host: string; type: string; value: string;
-  ttl: number; line: string; is_external: boolean;
+  id: number; host: string; type: string; value: string; ttl: number; line: string; is_external: boolean;
 }
+
+const RECORD_TYPES = ['A', 'AAAA', 'CNAME', 'MX', 'TXT', 'NS', 'SRV', 'CAA'];
 
 export default function DNSRecordsPage() {
   const qc = useQueryClient();
   const [domainId, setDomainId] = useState<number>(0);
+  const [createVisible, setCreateVisible] = useState(false);
+  const [editRecord, setEditRecord] = useState<DNSRecord | null>(null);
+  const [form] = Form.useForm();
+  const [editForm] = Form.useForm();
 
   const { data: domainsData } = useQuery({
     queryKey: ['domains-select'],
@@ -25,11 +32,63 @@ export default function DNSRecordsPage() {
     enabled: domainId > 0,
   });
 
+  const createMut = useMutation({
+    mutationFn: (body: unknown) => client.post(`/domains/${domainId}/records`, body),
+    onSuccess: () => {
+      qc.invalidateQueries({ queryKey: ['records', domainId] });
+      Message.success('记录已创建');
+      setCreateVisible(false);
+      form.resetFields();
+    },
+    onError: (e: unknown) => {
+      const msg = (e as { response?: { data?: { error?: string } } })?.response?.data?.error;
+      Message.error(msg || '创建失败');
+    },
+  });
+
+  const updateMut = useMutation({
+    mutationFn: ({ id, body }: { id: number; body: unknown }) =>
+      client.put(`/domains/${domainId}/records/${id}`, body),
+    onSuccess: () => {
+      qc.invalidateQueries({ queryKey: ['records', domainId] });
+      Message.success('记录已更新');
+      setEditRecord(null);
+    },
+    onError: (e: unknown) => {
+      const msg = (e as { response?: { data?: { error?: string } } })?.response?.data?.error;
+      Message.error(msg || '更新失败');
+    },
+  });
+
   const deleteMut = useMutation({
     mutationFn: (id: number) => client.delete(`/domains/${domainId}/records/${id}`),
     onSuccess: () => { qc.invalidateQueries({ queryKey: ['records', domainId] }); Message.success('已删除'); },
     onError: () => Message.error('删除失败'),
   });
+
+  const domains: Domain[] = domainsData?.items ?? [];
+
+  const recordForm = (f: ReturnType<typeof Form.useForm>[0]) => (
+    <Form form={f} layout="vertical">
+      <Form.Item label="主机记录" field="host" rules={[{ required: true }]}>
+        <Input placeholder="@ 或 www 或 mail" />
+      </Form.Item>
+      <Form.Item label="记录类型" field="type" rules={[{ required: true }]}>
+        <Select>
+          {RECORD_TYPES.map(t => <Select.Option key={t} value={t}>{t}</Select.Option>)}
+        </Select>
+      </Form.Item>
+      <Form.Item label="记录值" field="value" rules={[{ required: true }]}>
+        <Input placeholder="IP 地址、域名或文本内容" />
+      </Form.Item>
+      <Form.Item label="TTL (秒)" field="ttl" initialValue={600}>
+        <InputNumber min={1} max={86400} />
+      </Form.Item>
+      <Form.Item label="线路" field="line" initialValue="default">
+        <Input placeholder="default" />
+      </Form.Item>
+    </Form>
+  );
 
   const columns = [
     { title: 'ID', dataIndex: 'id', width: 70 },
@@ -44,42 +103,71 @@ export default function DNSRecordsPage() {
     },
     {
       title: '操作', render: (_: unknown, row: DNSRecord) => (
-        <Popconfirm title="确认删除此记录？" onOk={() => deleteMut.mutate(row.id)}>
-          <Button size="mini" type="text" status="danger">删除</Button>
-        </Popconfirm>
+        <Space>
+          <Button size="mini" icon={<IconEdit />} onClick={() => {
+            setEditRecord(row);
+            editForm.setFieldsValue({ host: row.host, type: row.type, value: row.value, ttl: row.ttl, line: row.line });
+          }}>编辑</Button>
+          <Popconfirm title="确认删除此记录？" onOk={() => deleteMut.mutate(row.id)}>
+            <Button size="mini" type="text" status="danger">删除</Button>
+          </Popconfirm>
+        </Space>
       ),
     },
   ];
 
-  const domains: Domain[] = domainsData?.items ?? [];
-
   return (
-    <Card
-      title={<Typography.Title heading={6} style={{ margin: 0 }}>DNS 记录</Typography.Title>}
-      extra={
-        <Space>
-          <Select
-            placeholder="选择域名"
-            style={{ width: 200 }}
-            value={domainId || undefined}
-            onChange={(v) => setDomainId(Number(v))}
-          >
-            {domains.map(d => (
-              <Select.Option key={d.id} value={d.id}>{d.name}</Select.Option>
-            ))}
-          </Select>
-          <Button icon={<IconRefresh />} onClick={() => qc.invalidateQueries({ queryKey: ['records', domainId] })} />
-        </Space>
-      }
-    >
-      <Table
-        loading={isLoading}
-        columns={columns}
-        data={data?.items ?? []}
-        rowKey="id"
-        pagination={false}
-        noDataElement={domainId === 0 ? <span>请先选择域名</span> : undefined}
-      />
-    </Card>
+    <>
+      <Card
+        title={<Typography.Title heading={6} style={{ margin: 0 }}>DNS 记录</Typography.Title>}
+        extra={
+          <Space>
+            <Select
+              placeholder="选择域名"
+              style={{ width: 200 }}
+              value={domainId || undefined}
+              onChange={v => setDomainId(Number(v))}
+            >
+              {domains.map(d => <Select.Option key={d.id} value={d.id}>{d.name}</Select.Option>)}
+            </Select>
+            <Button icon={<IconRefresh />} onClick={() => qc.invalidateQueries({ queryKey: ['records', domainId] })} />
+            <Button type="primary" icon={<IconPlus />} disabled={domainId === 0} onClick={() => setCreateVisible(true)}>
+              添加记录
+            </Button>
+          </Space>
+        }
+      >
+        <Table
+          loading={isLoading}
+          columns={columns}
+          data={data?.items ?? []}
+          rowKey="id"
+          pagination={false}
+          noDataElement={domainId === 0 ? <span>请先选择域名</span> : undefined}
+        />
+      </Card>
+
+      <Modal
+        title="添加 DNS 记录"
+        visible={createVisible}
+        onOk={() => form.validate().then(vals => createMut.mutate(vals))}
+        confirmLoading={createMut.isPending}
+        onCancel={() => { setCreateVisible(false); form.resetFields(); }}
+        unmountOnExit
+      >
+        {recordForm(form)}
+      </Modal>
+
+      <Modal
+        title="编辑 DNS 记录"
+        visible={editRecord !== null}
+        onOk={() => editForm.validate().then(vals => updateMut.mutate({ id: editRecord!.id, body: vals }))}
+        confirmLoading={updateMut.isPending}
+        onCancel={() => setEditRecord(null)}
+        unmountOnExit
+      >
+        {recordForm(editForm)}
+      </Modal>
+    </>
   );
 }

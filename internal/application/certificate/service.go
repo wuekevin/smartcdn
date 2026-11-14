@@ -148,6 +148,18 @@ func (s *Service) ListCertificates(ctx context.Context, domainID uint64) ([]Cert
 	return views, nil
 }
 
+func (s *Service) ListAllCertificates(ctx context.Context, afterID uint64, limit int) ([]CertView, error) {
+	cs, err := s.certs.ListAll(ctx, afterID, limit)
+	if err != nil {
+		return nil, err
+	}
+	views := make([]CertView, len(cs))
+	for i, c := range cs {
+		views[i] = *toCertView(&c)
+	}
+	return views, nil
+}
+
 func (s *Service) DeleteCertificate(ctx context.Context, id uint64) error {
 	if _, err := s.certs.FindByID(ctx, id); err != nil {
 		if errors.Is(err, repo.ErrNotFound) {

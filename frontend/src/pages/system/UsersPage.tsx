@@ -1,19 +1,39 @@
-import { Button, Card, Table, Tag, Typography, Popconfirm, Message } from '@arco-design/web-react';
-import { IconRefresh } from '@arco-design/web-react/icon';
+import { useState } from 'react';
+import {
+  Button, Card, Table, Tag, Typography, Popconfirm, Message, Space, Modal, Form, Input,
+} from '@arco-design/web-react';
+import { IconPlus, IconRefresh } from '@arco-design/web-react/icon';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import client from '../../api/client';
 
 interface User {
-  id: number; username: string; email: string; role: string; is_active: boolean; created_at: string;
+  id: number; username: string; email: string; is_active: boolean; created_at: string;
 }
 
 export default function UsersPage() {
   const qc = useQueryClient();
   const myId = Number(localStorage.getItem('user_id') ?? 0);
+  const [visible, setVisible] = useState(false);
+  const [form] = Form.useForm();
 
   const { data, isLoading } = useQuery({
     queryKey: ['users'],
     queryFn: () => client.get('/users').then(r => r.data),
+  });
+
+  const createMut = useMutation({
+    mutationFn: (body: { username: string; password: string; email?: string }) =>
+      client.post('/users', body),
+    onSuccess: () => {
+      qc.invalidateQueries({ queryKey: ['users'] });
+      Message.success('用户已创建');
+      setVisible(false);
+      form.resetFields();
+    },
+    onError: (e: unknown) => {
+      const msg = (e as { response?: { data?: { message?: string } } })?.response?.data?.message;
+      Message.error(msg || '创建失败');
+    },
   });
 
   const deleteMut = useMutation({
@@ -26,7 +46,6 @@ export default function UsersPage() {
     { title: 'ID', dataIndex: 'id', width: 70 },
     { title: '用户名', dataIndex: 'username' },
     { title: '邮箱', dataIndex: 'email' },
-    { title: '角色', dataIndex: 'role' },
     {
       title: '状态', dataIndex: 'is_active',
       render: (v: boolean) => <Tag color={v ? 'green' : 'gray'}>{v ? '启用' : '禁用'}</Tag>,
@@ -42,11 +61,39 @@ export default function UsersPage() {
   ];
 
   return (
-    <Card
-      title={<Typography.Title heading={6} style={{ margin: 0 }}>用户管理</Typography.Title>}
-      extra={<Button icon={<IconRefresh />} onClick={() => qc.invalidateQueries({ queryKey: ['users'] })} />}
-    >
-      <Table loading={isLoading} columns={columns} data={data?.items ?? []} rowKey="id" pagination={false} />
-    </Card>
+    <>
+      <Card
+        title={<Typography.Title heading={6} style={{ margin: 0 }}>用户管理</Typography.Title>}
+        extra={
+          <Space>
+            <Button icon={<IconRefresh />} onClick={() => qc.invalidateQueries({ queryKey: ['users'] })} />
+            <Button type="primary" icon={<IconPlus />} onClick={() => setVisible(true)}>添加用户</Button>
+          </Space>
+        }
+      >
+        <Table loading={isLoading} columns={columns} data={data?.items ?? []} rowKey="id" pagination={false} />
+      </Card>
+
+      <Modal
+        title="添加用户"
+        visible={visible}
+        onOk={() => form.validate().then(vals => createMut.mutate(vals))}
+        confirmLoading={createMut.isPending}
+        onCancel={() => { setVisible(false); form.resetFields(); }}
+        unmountOnExit
+      >
+        <Form form={form} layout="vertical" autoComplete="off">
+          <Form.Item label="用户名" field="username" rules={[{ required: true, minLength: 3, message: '用户名至少 3 个字符' }]}>
+            <Input placeholder="用户名" autoComplete="off" />
+          </Form.Item>
+          <Form.Item label="密码" field="password" rules={[{ required: true, minLength: 6, message: '密码至少 6 个字符' }]}>
+            <Input.Password placeholder="密码" autoComplete="new-password" />
+          </Form.Item>
+          <Form.Item label="邮箱（可选）" field="email">
+            <Input placeholder="admin@example.com" />
+          </Form.Item>
+        </Form>
+      </Modal>
+    </>
   );
 }
