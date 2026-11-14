@@ -18,7 +18,7 @@ import (
 const (
 	aliyunEndpoint    = "alidns.aliyuncs.com"
 	aliyunRateLimit   = 300 // calls per minute (阿里云 DNS API 限制)
-	defaultPageSize   = 500
+	defaultPageSize   = 100 // 阿里云 DNS API 单页最大值
 )
 
 // Credentials holds the JSON structure stored in dns_accounts.credentials_enc.
