@@ -9,6 +9,10 @@ import (
 // ErrProviderNotFound is returned by Registry when the requested provider ID is not registered.
 var ErrProviderNotFound = errors.New("provider not found")
 
+// ErrRecordAlreadyExists is returned when the provider rejects a CreateRecord call
+// because an identical record already exists.
+var ErrRecordAlreadyExists = errors.New("record already exists")
+
 // UnsupportedCapabilityError is returned when an operation requires a plan the account does not have.
 type UnsupportedCapabilityError struct {
 	Operation string

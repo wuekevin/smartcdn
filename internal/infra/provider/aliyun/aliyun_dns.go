@@ -217,6 +217,9 @@ func (p *AliyunDNSProvider) CreateRecord(ctx context.Context, zoneID string, inp
 	}
 	resp, err := p.client.AddDomainRecord(req)
 	if err != nil {
+		if strings.Contains(err.Error(), "DomainRecordDuplicate") {
+			return "", fmt.Errorf("aliyun CreateRecord: %w", port.ErrRecordAlreadyExists)
+		}
 		return "", fmt.Errorf("aliyun CreateRecord: %w", err)
 	}
 	return tea.StringValue(resp.Body.RecordId), nil

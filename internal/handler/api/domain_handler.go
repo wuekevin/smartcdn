@@ -1,6 +1,7 @@
 package api
 
 import (
+	"errors"
 	"fmt"
 	"net/http"
 	"strconv"
@@ -8,6 +9,7 @@ import (
 	"github.com/gin-gonic/gin"
 
 	domainsvc "github.com/wuekevin/smartcdn/internal/application/domain"
+	"github.com/wuekevin/smartcdn/internal/domain/port"
 )
 
 type DomainHandler struct {
@@ -147,6 +149,10 @@ func (h *DomainHandler) CreateRecord(c *gin.Context) {
 	if err != nil {
 		if err == domainsvc.ErrDomainNotFound {
 			c.JSON(http.StatusNotFound, gin.H{"error": "domain not found"})
+			return
+		}
+		if errors.Is(err, port.ErrRecordAlreadyExists) {
+			c.JSON(http.StatusConflict, gin.H{"error": "该记录已存在，请检查主机记录、类型和线路是否与现有记录重复"})
 			return
 		}
 		c.JSON(http.StatusInternalServerError, gin.H{"error": err.Error()})
