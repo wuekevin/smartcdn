@@ -72,7 +72,12 @@ export default function SetupWizard() {
     setLoading(true);
     setError(null);
     try {
-      const values = await form.validate();
+      const raw = await form.validate();
+      const values = {
+        ...raw,
+        db_port: Number(raw.db_port),
+        redis_db: Number(raw.redis_db),
+      };
       await axios.post('/api/v1/setup/complete', values);
       setCurrent(8);
     } catch (e: unknown) {
