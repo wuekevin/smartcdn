@@ -24,7 +24,7 @@ type MigrationJob struct {
 	TargetAccountID uint64             `gorm:"not null"` // destination DNS provider account
 	Status          MigrationJobStatus `gorm:"size:32;not null;default:'pending'"`
 	SnapshotID      uint64             `gorm:"index"`    // pre-migration snapshot
-	StepLogs        string             `gorm:"type:json"`
+	StepLogs        string             `gorm:"type:text"` // TEXT avoids MySQL JSON validation on empty string
 	ErrorMsg        string             `gorm:"type:text"`
 	CreatedAt       time.Time
 	UpdatedAt       time.Time

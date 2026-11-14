@@ -25,7 +25,7 @@ type PublishJob struct {
 	PayloadJSON string          `gorm:"type:json;not null"` // []PublishRecord
 	SnapshotID  uint64          `gorm:"index"`              // pre-publish snapshot ID
 	DryRun      bool            `gorm:"not null;default:false"`
-	StepLogs    string          `gorm:"type:json"`  // []StepLog
+	StepLogs    string          `gorm:"type:text"`  // []StepLog, TEXT avoids MySQL JSON validation on empty string
 	ErrorMsg    string          `gorm:"type:text"`
 	CreatedAt   time.Time
 	UpdatedAt   time.Time

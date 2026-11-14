@@ -8,7 +8,7 @@ type DNSAccount struct {
 	Name             string     `gorm:"size:128;not null"`
 	ProviderType     string     `gorm:"size:64;not null"`
 	CredentialsEnc   string     `gorm:"type:text;not null"`  // AES-256-GCM encrypted JSON
-	CapabilitiesJSON string     `gorm:"type:json"`           // cached capabilities, nullable
+	CapabilitiesJSON string     `gorm:"type:text"`           // cached capabilities JSON, stored as TEXT to avoid MySQL JSON validation on empty string
 	IsActive         bool       `gorm:"not null;default:true"`
 	CreatedAt        time.Time
 	UpdatedAt        time.Time
