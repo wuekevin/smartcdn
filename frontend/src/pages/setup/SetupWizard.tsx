@@ -20,6 +20,14 @@ interface SetupCheckResult {
   permissions: CheckItem;
 }
 
+// Fields that must pass validation before leaving each step (0-indexed).
+const STEP_REQUIRED_FIELDS: Record<number, string[]> = {
+  2: ['db_host', 'db_port', 'db_name', 'db_user'],
+  3: ['redis_addr'],
+  5: ['admin_username', 'admin_password'],
+  7: ['site_url'],
+};
+
 const STEP_LABELS = [
   '欢迎',
   '环境检测',
@@ -281,7 +289,22 @@ export default function SetupWizard() {
                   <Button onClick={() => setCurrent((c) => c - 1)}>上一步</Button>
                 )}
                 {current < 7 && (
-                  <Button type="primary" onClick={() => setCurrent((c) => c + 1)}>下一步</Button>
+                  <Button
+                    type="primary"
+                    onClick={async () => {
+                      const fields = STEP_REQUIRED_FIELDS[current];
+                      if (fields) {
+                        try {
+                          await form.validate(fields);
+                        } catch {
+                          return;
+                        }
+                      }
+                      setCurrent((c) => c + 1);
+                    }}
+                  >
+                    下一步
+                  </Button>
                 )}
                 {current === 7 && (
                   <Button type="primary" loading={loading} onClick={handleComplete}>开始安装</Button>
