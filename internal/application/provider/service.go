@@ -158,6 +158,15 @@ func (s *Service) GetCapabilities(ctx context.Context, id uint64) (*port.Capabil
 	return s.RefreshCapabilities(ctx, id)
 }
 
+// UpdateAccount updates the display name and enabled status of a DNS account.
+// Credentials are updated separately via RotateCredentials.
+func (s *Service) UpdateAccount(ctx context.Context, id uint64, name string, isActive bool) (*AccountView, error) {
+	if err := s.accounts.UpdateNameAndStatus(ctx, id, name, isActive); err != nil {
+		return nil, err
+	}
+	return s.GetAccount(ctx, id)
+}
+
 // DeleteAccount soft-deletes the given DNS account.
 func (s *Service) DeleteAccount(ctx context.Context, id uint64) error {
 	return s.accounts.Delete(ctx, id)

@@ -13,5 +13,6 @@ type DNSAccountRepository interface {
 	List(ctx context.Context, afterID uint64, limit int) ([]entity.DNSAccount, error)
 	UpdateCredentials(ctx context.Context, id uint64, credentialsEnc string) error
 	UpdateCapabilities(ctx context.Context, id uint64, capabilitiesJSON string) error
+	UpdateNameAndStatus(ctx context.Context, id uint64, name string, isActive bool) error
 	Delete(ctx context.Context, id uint64) error
 }

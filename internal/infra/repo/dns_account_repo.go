@@ -57,6 +57,11 @@ func (r *DNSAccountRepo) UpdateCapabilities(ctx context.Context, id uint64, capJ
 		Update("capabilities_json", capJSON).Error
 }
 
+func (r *DNSAccountRepo) UpdateNameAndStatus(ctx context.Context, id uint64, name string, isActive bool) error {
+	return r.db.WithContext(ctx).Model(&entity.DNSAccount{}).Where("id = ?", id).
+		Updates(map[string]interface{}{"name": name, "is_active": isActive}).Error
+}
+
 func (r *DNSAccountRepo) Delete(ctx context.Context, id uint64) error {
 	return r.db.WithContext(ctx).Where("id = ?", id).Delete(&entity.DNSAccount{}).Error
 }

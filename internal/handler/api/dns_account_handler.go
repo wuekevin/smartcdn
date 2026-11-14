@@ -23,6 +23,7 @@ func (h *DNSAccountHandler) RegisterRoutes(r *gin.RouterGroup) {
 	g.POST("", h.Create)
 	g.GET("", h.List)
 	g.GET("/:id", h.Get)
+	g.PUT("/:id", h.Update)
 	g.PUT("/:id/credentials", h.RotateCredentials)
 	g.PUT("/:id/refresh-capabilities", h.RefreshCapabilities)
 	g.DELETE("/:id", h.Delete)
@@ -69,6 +70,30 @@ func (h *DNSAccountHandler) Get(c *gin.Context) {
 	view, err := h.svc.GetAccount(c.Request.Context(), id)
 	if err != nil {
 		c.JSON(http.StatusNotFound, gin.H{"error": "not found"})
+		return
+	}
+	c.JSON(http.StatusOK, view)
+}
+
+type updateAccountReq struct {
+	Name     string `json:"name" binding:"required,max=128"`
+	IsActive bool   `json:"is_active"`
+}
+
+func (h *DNSAccountHandler) Update(c *gin.Context) {
+	id, err := parseUint64Param(c, "id")
+	if err != nil {
+		c.JSON(http.StatusBadRequest, gin.H{"error": "invalid id"})
+		return
+	}
+	var req updateAccountReq
+	if err := c.ShouldBindJSON(&req); err != nil {
+		c.JSON(http.StatusBadRequest, gin.H{"error": err.Error()})
+		return
+	}
+	view, err := h.svc.UpdateAccount(c.Request.Context(), id, req.Name, req.IsActive)
+	if err != nil {
+		c.JSON(http.StatusInternalServerError, gin.H{"error": err.Error()})
 		return
 	}
 	c.JSON(http.StatusOK, view)

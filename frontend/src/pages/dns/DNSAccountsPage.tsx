@@ -1,8 +1,8 @@
 import { useState } from 'react';
 import {
-  Button, Card, Table, Tag, Typography, Popconfirm, Message, Modal, Form, Input, Select, Space,
+  Button, Card, Table, Tag, Typography, Popconfirm, Message, Modal, Form, Input, Select, Space, Switch,
 } from '@arco-design/web-react';
-import { IconPlus, IconRefresh } from '@arco-design/web-react/icon';
+import { IconPlus, IconRefresh, IconEdit } from '@arco-design/web-react/icon';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import client from '../../api/client';
 
@@ -18,8 +18,11 @@ const PROVIDERS = [
 
 export default function DNSAccountsPage() {
   const qc = useQueryClient();
-  const [visible, setVisible] = useState(false);
-  const [form] = Form.useForm();
+  const [createVisible, setCreateVisible] = useState(false);
+  const [editVisible, setEditVisible] = useState(false);
+  const [editingRow, setEditingRow] = useState<DNSAccount | null>(null);
+  const [createForm] = Form.useForm();
+  const [editForm] = Form.useForm();
   const [selectedProvider, setSelectedProvider] = useState('');
 
   const { data, isLoading } = useQuery({
@@ -33,12 +36,29 @@ export default function DNSAccountsPage() {
     onSuccess: () => {
       qc.invalidateQueries({ queryKey: ['dns-accounts'] });
       Message.success('DNS 账户已创建');
-      setVisible(false);
-      form.resetFields();
+      setCreateVisible(false);
+      createForm.resetFields();
+      setSelectedProvider('');
     },
     onError: (e: unknown) => {
       const msg = (e as { response?: { data?: { error?: string } } })?.response?.data?.error;
       Message.error(msg || '创建失败');
+    },
+  });
+
+  const updateMut = useMutation({
+    mutationFn: ({ id, name, is_active }: { id: number; name: string; is_active: boolean }) =>
+      client.put(`/dns-accounts/${id}`, { name, is_active }),
+    onSuccess: () => {
+      qc.invalidateQueries({ queryKey: ['dns-accounts'] });
+      Message.success('已更新');
+      setEditVisible(false);
+      editForm.resetFields();
+      setEditingRow(null);
+    },
+    onError: (e: unknown) => {
+      const msg = (e as { response?: { data?: { error?: string } } })?.response?.data?.error;
+      Message.error(msg || '更新失败');
     },
   });
 
@@ -49,9 +69,21 @@ export default function DNSAccountsPage() {
   });
 
   const handleCreate = async () => {
-    const vals = await form.validate();
+    const vals = await createForm.validate();
     const { name, provider_type, ...rest } = vals;
     createMut.mutate({ name, provider_type, credentials: rest });
+  };
+
+  const handleEdit = (row: DNSAccount) => {
+    setEditingRow(row);
+    editForm.setFieldsValue({ name: row.name, is_active: row.is_active });
+    setEditVisible(true);
+  };
+
+  const handleUpdate = async () => {
+    if (!editingRow) return;
+    const vals = await editForm.validate();
+    updateMut.mutate({ id: editingRow.id, name: vals.name, is_active: vals.is_active ?? true });
   };
 
   const credFields = PROVIDERS.find(p => p.value === selectedProvider)?.fields ?? [];
@@ -67,9 +99,12 @@ export default function DNSAccountsPage() {
     { title: '创建时间', dataIndex: 'created_at', width: 180 },
     {
       title: '操作', render: (_: unknown, row: DNSAccount) => (
-        <Popconfirm title="确认删除此 DNS 账户？" onOk={() => deleteMut.mutate(row.id)}>
-          <Button size="mini" type="text" status="danger">删除</Button>
-        </Popconfirm>
+        <Space>
+          <Button size="mini" type="text" icon={<IconEdit />} onClick={() => handleEdit(row)}>编辑</Button>
+          <Popconfirm title="确认删除此 DNS 账户？" onOk={() => deleteMut.mutate(row.id)}>
+            <Button size="mini" type="text" status="danger">删除</Button>
+          </Popconfirm>
+        </Space>
       ),
     },
   ];
@@ -81,27 +116,28 @@ export default function DNSAccountsPage() {
         extra={
           <Space>
             <Button icon={<IconRefresh />} onClick={() => qc.invalidateQueries({ queryKey: ['dns-accounts'] })} />
-            <Button type="primary" icon={<IconPlus />} onClick={() => setVisible(true)}>添加账户</Button>
+            <Button type="primary" icon={<IconPlus />} onClick={() => setCreateVisible(true)}>添加账户</Button>
           </Space>
         }
       >
         <Table loading={isLoading} columns={columns} data={data?.items ?? []} rowKey="id" pagination={false} />
       </Card>
 
+      {/* 新建弹窗 */}
       <Modal
         title="添加 DNS 账户"
-        visible={visible}
+        visible={createVisible}
         onOk={handleCreate}
         confirmLoading={createMut.isPending}
-        onCancel={() => { setVisible(false); form.resetFields(); setSelectedProvider(''); }}
+        onCancel={() => { setCreateVisible(false); createForm.resetFields(); setSelectedProvider(''); }}
         unmountOnExit
       >
-        <Form form={form} layout="vertical" autoComplete="off">
+        <Form form={createForm} layout="vertical" autoComplete="off">
           <Form.Item label="账户名称" field="name" rules={[{ required: true, message: '请输入名称' }]}>
             <Input placeholder="如：我的阿里云账户" />
           </Form.Item>
           <Form.Item label="DNS 服务商" field="provider_type" rules={[{ required: true, message: '请选择服务商' }]}>
-            <Select placeholder="选择服务商" onChange={v => { setSelectedProvider(v as string); }}>
+            <Select placeholder="选择服务商" onChange={v => setSelectedProvider(v as string)}>
               {PROVIDERS.map(p => <Select.Option key={p.value} value={p.value}>{p.label}</Select.Option>)}
             </Select>
           </Form.Item>
@@ -111,6 +147,28 @@ export default function DNSAccountsPage() {
             </Form.Item>
           ))}
         </Form>
+      </Modal>
+
+      {/* 编辑弹窗 */}
+      <Modal
+        title="编辑 DNS 账户"
+        visible={editVisible}
+        onOk={handleUpdate}
+        confirmLoading={updateMut.isPending}
+        onCancel={() => { setEditVisible(false); editForm.resetFields(); setEditingRow(null); }}
+        unmountOnExit
+      >
+        <Form form={editForm} layout="vertical" autoComplete="off">
+          <Form.Item label="账户名称" field="name" rules={[{ required: true, message: '请输入名称' }]}>
+            <Input placeholder="账户名称" />
+          </Form.Item>
+          <Form.Item label="启用状态" field="is_active" triggerPropName="checked">
+            <Switch checkedText="启用" uncheckedText="禁用" />
+          </Form.Item>
+        </Form>
+        <Typography.Text type="secondary" style={{ fontSize: 12 }}>
+          如需修改 API 密钥，请联系管理员通过凭据轮换接口操作。
+        </Typography.Text>
       </Modal>
     </>
   );
