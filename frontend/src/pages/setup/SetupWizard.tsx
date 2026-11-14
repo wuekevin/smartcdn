@@ -25,7 +25,7 @@ const STEP_REQUIRED_FIELDS: Record<number, string[]> = {
   2: ['db_host', 'db_port', 'db_name', 'db_user'],
   3: ['redis_addr'],
   5: ['admin_username', 'admin_password'],
-  7: ['site_url'],
+  7: ['port', 'site_url'],
 };
 
 const STEP_LABELS = [
@@ -272,12 +272,34 @@ export default function SetupWizard() {
               <div style={{ display: current === 7 ? undefined : 'none' }}>
                 <Title heading={5}>访问地址</Title>
                 <Form.Item
-                  label="站点 URL"
+                  label="监听端口"
+                  field="port"
+                  initialValue="8080"
+                  rules={[
+                    { required: true },
+                    {
+                      validator: (v: string | undefined, cb: (err?: React.ReactNode) => void) => {
+                        const n = Number(v);
+                        if (!v || isNaN(n) || n < 1 || n > 65535) {
+                          cb('端口范围 1–65535');
+                        } else {
+                          cb();
+                        }
+                      },
+                    },
+                  ]}
+                  extra="SmartCDN HTTP 服务监听的端口号"
+                >
+                  <Input type="number" style={{ width: 160 }} />
+                </Form.Item>
+                <Form.Item
+                  label="站点公网 URL"
                   field="site_url"
                   rules={[{ required: true }, { type: 'url' }]}
                   initialValue="http://localhost:8080"
+                  extra="对外访问的完整地址，用于生成回调链接等"
                 >
-                  <Input />
+                  <Input placeholder="https://cdn.example.com" />
                 </Form.Item>
               </div>
 

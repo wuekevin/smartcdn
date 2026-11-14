@@ -31,4 +31,5 @@ type SetupCompleteInput struct {
 	AdminPass  string `json:"admin_password" binding:"required,min=8"`
 	EncryptKey string `json:"encrypt_key" binding:"required"`
 	SiteURL    string `json:"site_url" binding:"required"`
+	Port       string `json:"port" binding:"required"`
 }

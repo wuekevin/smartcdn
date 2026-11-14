@@ -200,7 +200,7 @@ func writeConfig(input entity.SetupCompleteInput) error {
 		},
 		EncryptKey: input.EncryptKey,
 		SiteURL:    input.SiteURL,
-		Port:       "8080",
+		Port:       input.Port,
 	}
 	return appconfig.Write(cfg)
 }

@@ -61,7 +61,7 @@ func main() {
 	if !setupSvc.IsInstalled() {
 		log.Info("install.lock not found — running in setup mode")
 		api.RegisterSPA(r, frontendFS())
-		startServer(r, "8080", log)
+		startServer(r, setupPort(), log)
 		return
 	}
 
@@ -236,13 +236,19 @@ func runAlertEvaluator(svc *monapp.Service, log *zap.Logger) {
 }
 
 func startServer(r *gin.Engine, port string, log *zap.Logger) {
-	if p := os.Getenv("PORT"); p != "" {
-		port = p
-	}
 	log.Info("listening", zap.String("port", port))
 	if err := r.Run(":" + port); err != nil {
 		log.Fatal("server error", zap.Error(err))
 	}
+}
+
+// setupPort returns the port to use in setup mode (no config.yaml yet).
+// Reads PORT env var; defaults to 8080.
+func setupPort() string {
+	if p := os.Getenv("PORT"); p != "" {
+		return p
+	}
+	return "8080"
 }
 
 // providerDNSAdapter adapts provider.Service to certificate.DNSProviderResolver.
