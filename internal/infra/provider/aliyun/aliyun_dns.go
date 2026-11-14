@@ -323,6 +323,27 @@ func (p *AliyunDNSProvider) ResumeRecord(ctx context.Context, _, recordID string
 	return err
 }
 
+func (p *AliyunDNSProvider) ListLines(ctx context.Context, zoneID string) ([]string, error) {
+	if err := p.limiter.Wait(ctx); err != nil {
+		return nil, err
+	}
+	req := &alidns.DescribeSupportLinesRequest{DomainName: tea.String(zoneID)}
+	resp, err := p.client.DescribeSupportLines(req)
+	if err != nil || resp.Body == nil || resp.Body.RecordLines == nil {
+		return []string{"default"}, nil //nolint:nilerr
+	}
+	lines := make([]string, 0, len(resp.Body.RecordLines.RecordLine))
+	for _, l := range resp.Body.RecordLines.RecordLine {
+		if l.LineCode != nil {
+			lines = append(lines, *l.LineCode)
+		}
+	}
+	if len(lines) == 0 {
+		return []string{"default"}, nil
+	}
+	return lines, nil
+}
+
 func (p *AliyunDNSProvider) GetNameservers(ctx context.Context, zoneID string) ([]string, error) {
 	if err := p.limiter.Wait(ctx); err != nil {
 		return nil, err

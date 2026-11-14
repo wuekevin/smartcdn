@@ -350,6 +350,11 @@ func (p *DNSPodProvider) GetNameservers(_ context.Context, _ string) ([]string, 
 	}
 }
 
+func (p *DNSPodProvider) ListLines(_ context.Context, _ string) ([]string, error) {
+	// DNSPod 付费版支持三网拆分，标准线路固定，不需要按域名动态查询。
+	return []string{"默认", "电信", "联通", "移动", "境外", "搜索引擎"}, nil
+}
+
 // --- helpers ---
 
 func recordFromDNSPod(r *dnspodSDK.RecordListItem) port.DNSRecord {

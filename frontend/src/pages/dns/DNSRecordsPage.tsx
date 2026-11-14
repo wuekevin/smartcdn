@@ -13,18 +13,22 @@ interface DNSRecord {
 
 const RECORD_TYPES = ['A', 'AAAA', 'CNAME', 'MX', 'TXT', 'NS', 'SRV', 'CAA'];
 
-const DNS_LINES: { value: string; label: string }[] = [
-  { value: 'default',  label: '默认' },
-  { value: 'telecom',  label: '电信' },
-  { value: 'unicom',   label: '联通' },
-  { value: 'mobile',   label: '移动' },
-  { value: 'oversea',  label: '境外' },
-  { value: 'internal', label: '内网' },
-  { value: 'edu',      label: '教育网' },
-  { value: 'baidu',    label: '百度蜘蛛' },
-  { value: 'search',   label: '搜索引擎' },
-];
-const LINE_LABEL: Record<string, string> = Object.fromEntries(DNS_LINES.map(l => [l.value, l.label]));
+// 本地展示用的中文别名映射（兜底，provider 返回的原始值直接展示）
+const KNOWN_LINE_LABEL: Record<string, string> = {
+  default:  '默认',
+  telecom:  '电信',
+  unicom:   '联通',
+  mobile:   '移动',
+  oversea:  '境外',
+  overseas: '境外',
+  internal: '内网',
+  edu:      '教育网',
+  search:   '搜索引擎',
+  baidu:    '百度蜘蛛',
+  '默认': '默认', '电信': '电信', '联通': '联通', '移动': '移动',
+  '境外': '境外', '搜索引擎': '搜索引擎',
+};
+const lineLabel = (v: string) => KNOWN_LINE_LABEL[v] ?? v;
 
 export default function DNSRecordsPage() {
   const qc = useQueryClient();
@@ -38,6 +42,13 @@ export default function DNSRecordsPage() {
     queryKey: ['domains-select'],
     queryFn: () => client.get('/domains', { params: { limit: 200 } }).then(r => r.data),
   });
+
+  const { data: linesData } = useQuery({
+    queryKey: ['domain-lines', domainId],
+    queryFn: () => client.get(`/domains/${domainId}/lines`).then(r => r.data),
+    enabled: domainId > 0,
+  });
+  const availableLines: string[] = linesData?.items ?? ['default'];
 
   const { data, isLoading } = useQuery({
     queryKey: ['records', domainId],
@@ -109,10 +120,10 @@ export default function DNSRecordsPage() {
       <Form.Item label="TTL (秒)" field="ttl" initialValue={600}>
         <InputNumber min={1} max={86400} />
       </Form.Item>
-      <Form.Item label="线路" field="line" initialValue="default">
+      <Form.Item label="线路" field="line" initialValue={availableLines[0] ?? 'default'}>
         <Select showSearch>
-          {DNS_LINES.map(l => (
-            <Select.Option key={l.value} value={l.value}>{l.label}</Select.Option>
+          {availableLines.map(v => (
+            <Select.Option key={v} value={v}>{lineLabel(v)}</Select.Option>
           ))}
         </Select>
       </Form.Item>
@@ -127,7 +138,7 @@ export default function DNSRecordsPage() {
     { title: 'TTL', dataIndex: 'ttl', width: 80 },
     {
       title: '线路', dataIndex: 'line', width: 100,
-      render: (v: string) => LINE_LABEL[v] ?? v,
+      render: (v: string) => lineLabel(v),
     },
     {
       title: '外部', dataIndex: 'is_external',

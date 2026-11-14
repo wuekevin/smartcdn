@@ -336,6 +336,19 @@ func (s *Service) ListSnapshots(ctx context.Context, domainID uint64, afterID ui
 
 // --- Provider helpers ---
 
+// ListLines 返回指定域名在其 DNS 服务商支持的线路列表。
+func (s *Service) ListLines(ctx context.Context, domainID uint64) ([]string, error) {
+	d, err := s.domains.FindByID(ctx, domainID)
+	if err != nil {
+		return nil, fmt.Errorf("find domain: %w", err)
+	}
+	p, err := s.loadProvider(ctx, d)
+	if err != nil {
+		return nil, err
+	}
+	return p.ListLines(ctx, d.Name)
+}
+
 func (s *Service) loadProvider(ctx context.Context, d *entity.Domain) (port.DNSProvider, error) {
 	acct, err := s.accounts.FindByID(ctx, d.AccountID)
 	if err != nil {

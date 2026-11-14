@@ -38,6 +38,9 @@ func (h *DomainHandler) RegisterRoutes(r *gin.RouterGroup) {
 
 	// Sync from provider
 	g.POST("/:id/sync-from-provider", h.SyncFromProvider)
+
+	// Lines
+	g.GET("/:id/lines", h.ListLines)
 }
 
 // POST /api/v1/domains
@@ -277,6 +280,21 @@ func (h *DomainHandler) SyncFromProvider(c *gin.Context) {
 		return
 	}
 	c.JSON(http.StatusOK, gin.H{"items": views, "count": len(views)})
+}
+
+// GET /api/v1/domains/:id/lines
+func (h *DomainHandler) ListLines(c *gin.Context) {
+	domainID, err := parseUint64Param(c, "id")
+	if err != nil {
+		c.JSON(http.StatusBadRequest, gin.H{"error": "invalid domain id"})
+		return
+	}
+	lines, err := h.svc.ListLines(c.Request.Context(), domainID)
+	if err != nil {
+		c.JSON(http.StatusInternalServerError, gin.H{"error": err.Error()})
+		return
+	}
+	c.JSON(http.StatusOK, gin.H{"items": lines})
 }
 
 // --- helpers ---

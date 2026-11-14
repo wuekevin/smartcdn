@@ -128,6 +128,10 @@ type DNSProvider interface {
 
 	// GetNameservers returns the authoritative nameservers for the given zone.
 	GetNameservers(ctx context.Context, zoneID string) ([]string, error)
+
+	// ListLines returns the routing line codes supported for the given zone.
+	// The first entry is always the default line.
+	ListLines(ctx context.Context, zoneID string) ([]string, error)
 }
 
 // DNSProviderRegistry allows the application layer to obtain a provider by ID without

@@ -222,6 +222,11 @@ func (p *CloudflareDNSProvider) GetNameservers(ctx context.Context, zoneID strin
 	return ns, nil
 }
 
+func (p *CloudflareDNSProvider) ListLines(_ context.Context, _ string) ([]string, error) {
+	// Cloudflare 不支持线路拆分，仅有默认线路。
+	return []string{"default"}, nil
+}
+
 // --- helpers ---
 
 func recordFromCF(r dns.RecordResponse) port.DNSRecord {
