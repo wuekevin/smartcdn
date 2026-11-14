@@ -275,6 +275,57 @@ func (s *Service) SyncDomainStatus(ctx context.Context, id uint64) (*DomainView,
 	return toDomainView(d), nil
 }
 
+// SyncFromProvider pulls all domains from the CDN provider for the given account
+// and upserts them into local storage. Returns the final list of upserted views.
+func (s *Service) SyncFromProvider(ctx context.Context, accountID uint64) ([]DomainView, error) {
+	provider, err := s.loadProvider(ctx, accountID)
+	if err != nil {
+		return nil, err
+	}
+	zones, err := provider.ListDomains(ctx)
+	if err != nil {
+		return nil, fmt.Errorf("cdn: list domains from provider: %w", err)
+	}
+
+	existing, err := s.domains.ListByAccount(ctx, accountID)
+	if err != nil {
+		return nil, fmt.Errorf("cdn: list local domains: %w", err)
+	}
+	byName := make(map[string]*entity.CDNDomain, len(existing))
+	for i := range existing {
+		byName[existing[i].DomainName] = &existing[i]
+	}
+
+	var views []DomainView
+	for _, z := range zones {
+		if d, ok := byName[z.Domain]; ok {
+			d.Status = z.Status
+			if z.CNAME != "" {
+				d.CNAME = z.CNAME
+			}
+			if z.ID != "" {
+				d.ProviderZoneID = z.ID
+			}
+			if err := s.domains.Update(ctx, d); err == nil {
+				views = append(views, *toDomainView(d))
+			}
+		} else {
+			d := &entity.CDNDomain{
+				AccountID:      accountID,
+				DomainName:     z.Domain,
+				ProviderZoneID: z.ID,
+				CNAME:          z.CNAME,
+				Status:         z.Status,
+				IsActive:       true,
+			}
+			if err := s.domains.Create(ctx, d); err == nil {
+				views = append(views, *toDomainView(d))
+			}
+		}
+	}
+	return views, nil
+}
+
 // --- Cache management ---
 
 func (s *Service) PurgeURLs(ctx context.Context, domainID uint64, urls []string) error {

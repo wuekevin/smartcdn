@@ -21,6 +21,7 @@ type CDNDomainRepository interface {
 	FindByID(ctx context.Context, id uint64) (*entity.CDNDomain, error)
 	FindByDomainName(ctx context.Context, domainName string) (*entity.CDNDomain, error)
 	List(ctx context.Context, afterID uint64, limit int) ([]entity.CDNDomain, error)
+	ListByAccount(ctx context.Context, accountID uint64) ([]entity.CDNDomain, error)
 	Update(ctx context.Context, d *entity.CDNDomain) error
 	Delete(ctx context.Context, id uint64) error
 }

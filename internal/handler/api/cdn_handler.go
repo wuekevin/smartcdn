@@ -26,6 +26,7 @@ func (h *CDNHandler) RegisterRoutes(r *gin.RouterGroup) {
 	acc.PUT("/:aid", h.UpdateAccount)
 	acc.DELETE("/:aid", h.DeleteAccount)
 	acc.POST("/:aid/validate", h.ValidateAccount)
+	acc.POST("/:aid/sync-from-provider", h.SyncFromProvider)
 
 	// CDN domains
 	dom := r.Group("/cdn/domains")
@@ -158,6 +159,25 @@ func (h *CDNHandler) ValidateAccount(c *gin.Context) {
 		return
 	}
 	c.JSON(http.StatusOK, gin.H{"ok": true})
+}
+
+// POST /api/v1/cdn/accounts/:aid/sync-from-provider
+func (h *CDNHandler) SyncFromProvider(c *gin.Context) {
+	id, err := parseUint64Param(c, "aid")
+	if err != nil {
+		c.JSON(http.StatusBadRequest, gin.H{"error": "invalid account id"})
+		return
+	}
+	views, err := h.svc.SyncFromProvider(c.Request.Context(), id)
+	if err != nil {
+		if err == cdnsvc.ErrAccountNotFound {
+			c.JSON(http.StatusNotFound, gin.H{"error": "cdn account not found"})
+			return
+		}
+		c.JSON(http.StatusInternalServerError, gin.H{"error": err.Error()})
+		return
+	}
+	c.JSON(http.StatusOK, gin.H{"items": views, "count": len(views)})
 }
 
 // POST /api/v1/cdn/domains

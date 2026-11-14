@@ -95,6 +95,15 @@ func (r *CDNDomainRepo) List(ctx context.Context, afterID uint64, limit int) ([]
 	return ds, q.Order("id ASC").Limit(limit).Find(&ds).Error
 }
 
+func (r *CDNDomainRepo) ListByAccount(ctx context.Context, accountID uint64) ([]entity.CDNDomain, error) {
+	var ds []entity.CDNDomain
+	err := r.db.WithContext(ctx).
+		Where("account_id = ? AND deleted_at IS NULL", accountID).
+		Order("id ASC").
+		Find(&ds).Error
+	return ds, err
+}
+
 func (r *CDNDomainRepo) Update(ctx context.Context, d *entity.CDNDomain) error {
 	return r.db.WithContext(ctx).Save(d).Error
 }

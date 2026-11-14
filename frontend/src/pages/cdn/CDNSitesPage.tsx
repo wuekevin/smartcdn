@@ -1,8 +1,8 @@
 import { useState } from 'react';
 import {
-  Button, Card, Table, Tag, Typography, Popconfirm, Message, Space, Modal, Form, Input, Select, InputNumber, Switch,
+  Button, Card, Table, Tag, Typography, Popconfirm, Message, Space, Modal, Form, Input, Select, InputNumber, Switch, Dropdown, Menu,
 } from '@arco-design/web-react';
-import { IconPlus, IconRefresh, IconEdit } from '@arco-design/web-react/icon';
+import { IconPlus, IconRefresh, IconEdit, IconSync, IconDown } from '@arco-design/web-react/icon';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import client from '../../api/client';
 
@@ -71,6 +71,22 @@ export default function CDNSitesPage() {
     onError: () => Message.error('删除失败'),
   });
 
+  const syncStatusMut = useMutation({
+    mutationFn: (id: number) => client.post(`/cdn/domains/${id}/sync`),
+    onSuccess: () => { qc.invalidateQueries({ queryKey: ['cdn-sites'] }); Message.success('站点状态已同步'); },
+    onError: () => Message.error('同步失败'),
+  });
+
+  const syncFromProviderMut = useMutation({
+    mutationFn: (accountId: number) => client.post(`/cdn/accounts/${accountId}/sync-from-provider`),
+    onSuccess: (res) => {
+      qc.invalidateQueries({ queryKey: ['cdn-sites'] });
+      const count = res.data?.count ?? 0;
+      Message.success(`已从服务商同步 ${count} 个站点`);
+    },
+    onError: () => Message.error('从服务商同步失败'),
+  });
+
   const accounts: CDNAccount[] = accountsData?.items ?? [];
 
   const handleEdit = (row: CDNSite) => {
@@ -104,6 +120,11 @@ export default function CDNSitesPage() {
       title: '操作', render: (_: unknown, row: CDNSite) => (
         <Space>
           <Button size="mini" type="text" icon={<IconEdit />} onClick={() => handleEdit(row)}>编辑</Button>
+          <Button
+            size="mini" type="text" icon={<IconSync />}
+            loading={syncStatusMut.isPending}
+            onClick={() => syncStatusMut.mutate(row.id)}
+          >同步</Button>
           <Popconfirm title="确认删除此 CDN 站点？" onOk={() => deleteMut.mutate(row.id)}>
             <Button size="mini" type="text" status="danger">删除</Button>
           </Popconfirm>
@@ -119,6 +140,22 @@ export default function CDNSitesPage() {
         extra={
           <Space>
             <Button icon={<IconRefresh />} onClick={() => qc.invalidateQueries({ queryKey: ['cdn-sites'] })} />
+            <Dropdown
+              droplist={
+                <Menu>
+                  {accounts.map(a => (
+                    <Menu.Item key={String(a.id)} onClick={() => syncFromProviderMut.mutate(a.id)}>
+                      {a.name} ({a.provider_type})
+                    </Menu.Item>
+                  ))}
+                  {accounts.length === 0 && <Menu.Item key="none" disabled>暂无 CDN 账户</Menu.Item>}
+                </Menu>
+              }
+            >
+              <Button loading={syncFromProviderMut.isPending} icon={<IconSync />}>
+                从服务商同步 <IconDown />
+              </Button>
+            </Dropdown>
             <Button type="primary" icon={<IconPlus />} onClick={() => setCreateVisible(true)}>添加站点</Button>
           </Space>
         }
