@@ -18,8 +18,8 @@ export default function ProbesPage() {
     { title: 'ISP', dataIndex: 'isp' },
     { title: '地区', dataIndex: 'region' },
     {
-      title: '状态', dataIndex: 'status',
-      render: (v: string) => <Tag color={v === 'online' ? 'green' : 'gray'}>{v}</Tag>,
+      title: '状态', dataIndex: 'is_active',
+      render: (v: boolean) => <Tag color={v ? 'green' : 'gray'}>{v ? 'online' : 'offline'}</Tag>,
     },
     { title: '最后在线', dataIndex: 'last_seen_at', width: 180 },
   ];

@@ -32,6 +32,7 @@ func (h *CDNHandler) RegisterRoutes(r *gin.RouterGroup) {
 	dom.POST("", h.AddDomain)
 	dom.GET("", h.ListDomains)
 	dom.GET("/:did", h.GetDomain)
+	dom.PUT("/:did", h.UpdateDomain)
 	dom.DELETE("/:did", h.DeleteDomain)
 	dom.POST("/:did/sync", h.SyncDomainStatus)
 	dom.POST("/:did/purge-urls", h.PurgeURLs)
@@ -210,6 +211,30 @@ func (h *CDNHandler) GetDomain(c *gin.Context) {
 		return
 	}
 	v, err := h.svc.GetDomain(c.Request.Context(), id)
+	if err != nil {
+		if err == cdnsvc.ErrDomainNotFound {
+			c.JSON(http.StatusNotFound, gin.H{"error": "cdn domain not found"})
+			return
+		}
+		c.JSON(http.StatusInternalServerError, gin.H{"error": err.Error()})
+		return
+	}
+	c.JSON(http.StatusOK, v)
+}
+
+// PUT /api/v1/cdn/domains/:did
+func (h *CDNHandler) UpdateDomain(c *gin.Context) {
+	id, err := parseUint64Param(c, "did")
+	if err != nil {
+		c.JSON(http.StatusBadRequest, gin.H{"error": "invalid domain id"})
+		return
+	}
+	var input cdnsvc.UpdateDomainInput
+	if err := c.ShouldBindJSON(&input); err != nil {
+		c.JSON(http.StatusBadRequest, gin.H{"error": err.Error()})
+		return
+	}
+	v, err := h.svc.UpdateDomain(c.Request.Context(), id, input)
 	if err != nil {
 		if err == cdnsvc.ErrDomainNotFound {
 			c.JSON(http.StatusNotFound, gin.H{"error": "cdn domain not found"})

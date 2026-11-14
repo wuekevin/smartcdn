@@ -23,6 +23,7 @@ func (h *DomainHandler) RegisterRoutes(r *gin.RouterGroup) {
 	g.POST("", h.CreateDomain)
 	g.GET("", h.ListDomains)
 	g.GET("/:id", h.GetDomain)
+	g.PUT("/:id", h.UpdateDomain)
 	g.DELETE("/:id", h.DeleteDomain)
 
 	// DNS records
@@ -77,6 +78,30 @@ func (h *DomainHandler) GetDomain(c *gin.Context) {
 	v, err := h.svc.GetDomain(c.Request.Context(), id)
 	if err != nil {
 		c.JSON(http.StatusNotFound, gin.H{"error": "domain not found"})
+		return
+	}
+	c.JSON(http.StatusOK, v)
+}
+
+// PUT /api/v1/domains/:id
+func (h *DomainHandler) UpdateDomain(c *gin.Context) {
+	id, err := parseUint64Param(c, "id")
+	if err != nil {
+		c.JSON(http.StatusBadRequest, gin.H{"error": "invalid id"})
+		return
+	}
+	var input domainsvc.UpdateDomainInput
+	if err := c.ShouldBindJSON(&input); err != nil {
+		c.JSON(http.StatusBadRequest, gin.H{"error": err.Error()})
+		return
+	}
+	v, err := h.svc.UpdateDomain(c.Request.Context(), id, input)
+	if err != nil {
+		if err == domainsvc.ErrDomainNotFound {
+			c.JSON(http.StatusNotFound, gin.H{"error": "domain not found"})
+			return
+		}
+		c.JSON(http.StatusInternalServerError, gin.H{"error": err.Error()})
 		return
 	}
 	c.JSON(http.StatusOK, v)

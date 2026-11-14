@@ -46,9 +46,10 @@ const navItems = [
   },
   { key: '/monitor',                  icon: <IconBulb />,       label: '监控中心',
     children: [
-      { key: '/monitor/metrics',  label: '指标大盘' },
-      { key: '/monitor/alerts',   label: '告警管理' },
-      { key: '/monitor/channels', label: '通知渠道' },
+      { key: '/monitor/metrics',      label: '指标大盘' },
+      { key: '/monitor/alert-rules',  label: '告警规则' },
+      { key: '/monitor/alerts',       label: '告警管理' },
+      { key: '/monitor/channels',     label: '通知渠道' },
     ],
   },
   { key: '/system',                   icon: <IconSettings />,   label: '系统管理',

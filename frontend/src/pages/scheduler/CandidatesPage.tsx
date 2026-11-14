@@ -21,8 +21,8 @@ export default function CandidatesPage() {
       render: (v: number) => v?.toFixed(2) ?? '-',
     },
     {
-      title: '启用', dataIndex: 'is_enabled',
-      render: (v: boolean) => <Tag color={v ? 'green' : 'gray'}>{v ? '是' : '否'}</Tag>,
+      title: '状态', dataIndex: 'status',
+      render: (v: string) => <Tag color={v === 'active' ? 'green' : v === 'failed' ? 'red' : 'gray'}>{v ?? '-'}</Tag>,
     },
     { title: '创建时间', dataIndex: 'created_at', width: 180 },
   ];

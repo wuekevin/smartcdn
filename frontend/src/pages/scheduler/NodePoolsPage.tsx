@@ -1,5 +1,8 @@
-import { Button, Card, Table, Typography, Popconfirm, Message } from '@arco-design/web-react';
-import { IconRefresh } from '@arco-design/web-react/icon';
+import { useState } from 'react';
+import {
+  Button, Card, Table, Typography, Popconfirm, Message, Space, Modal, Form, Input,
+} from '@arco-design/web-react';
+import { IconPlus, IconRefresh } from '@arco-design/web-react/icon';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import client from '../../api/client';
 
@@ -9,10 +12,26 @@ interface NodePool {
 
 export default function NodePoolsPage() {
   const qc = useQueryClient();
+  const [visible, setVisible] = useState(false);
+  const [form] = Form.useForm();
 
   const { data, isLoading } = useQuery({
     queryKey: ['node-pools'],
     queryFn: () => client.get('/node-pools').then(r => r.data),
+  });
+
+  const createMut = useMutation({
+    mutationFn: (body: unknown) => client.post('/node-pools', body),
+    onSuccess: () => {
+      qc.invalidateQueries({ queryKey: ['node-pools'] });
+      Message.success('节点池已创建');
+      setVisible(false);
+      form.resetFields();
+    },
+    onError: (e: unknown) => {
+      const msg = (e as { response?: { data?: { error?: string } } })?.response?.data?.error;
+      Message.error(msg || '创建失败');
+    },
   });
 
   const deleteMut = useMutation({
@@ -37,11 +56,36 @@ export default function NodePoolsPage() {
   ];
 
   return (
-    <Card
-      title={<Typography.Title heading={6} style={{ margin: 0 }}>节点池</Typography.Title>}
-      extra={<Button icon={<IconRefresh />} onClick={() => qc.invalidateQueries({ queryKey: ['node-pools'] })} />}
-    >
-      <Table loading={isLoading} columns={columns} data={data?.items ?? []} rowKey="id" pagination={false} />
-    </Card>
+    <>
+      <Card
+        title={<Typography.Title heading={6} style={{ margin: 0 }}>节点池</Typography.Title>}
+        extra={
+          <Space>
+            <Button icon={<IconRefresh />} onClick={() => qc.invalidateQueries({ queryKey: ['node-pools'] })} />
+            <Button type="primary" icon={<IconPlus />} onClick={() => setVisible(true)}>创建节点池</Button>
+          </Space>
+        }
+      >
+        <Table loading={isLoading} columns={columns} data={data?.items ?? []} rowKey="id" pagination={false} />
+      </Card>
+
+      <Modal
+        title="创建节点池"
+        visible={visible}
+        onOk={() => form.validate().then(vals => createMut.mutate(vals))}
+        confirmLoading={createMut.isPending}
+        onCancel={() => { setVisible(false); form.resetFields(); }}
+        unmountOnExit
+      >
+        <Form form={form} layout="vertical">
+          <Form.Item label="名称" field="name" rules={[{ required: true, message: '请输入名称' }]}>
+            <Input placeholder="如：华南节点池" />
+          </Form.Item>
+          <Form.Item label="描述" field="description">
+            <Input.TextArea placeholder="可选描述" />
+          </Form.Item>
+        </Form>
+      </Modal>
+    </>
   );
 }

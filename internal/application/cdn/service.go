@@ -200,6 +200,37 @@ func (s *Service) ListDomains(ctx context.Context, afterID uint64, limit int) ([
 	return views, nil
 }
 
+type UpdateDomainInput struct {
+	OriginAddr string `json:"origin_addr"`
+	OriginPort int    `json:"origin_port"`
+	Protocol   string `json:"protocol"`
+	IsActive   bool   `json:"is_active"`
+}
+
+func (s *Service) UpdateDomain(ctx context.Context, id uint64, input UpdateDomainInput) (*DomainView, error) {
+	d, err := s.domains.FindByID(ctx, id)
+	if err != nil {
+		if errors.Is(err, repo.ErrNotFound) {
+			return nil, ErrDomainNotFound
+		}
+		return nil, err
+	}
+	if input.OriginAddr != "" {
+		d.OriginAddr = input.OriginAddr
+	}
+	if input.OriginPort > 0 {
+		d.OriginPort = input.OriginPort
+	}
+	if input.Protocol != "" {
+		d.Protocol = input.Protocol
+	}
+	d.IsActive = input.IsActive
+	if err := s.domains.Update(ctx, d); err != nil {
+		return nil, fmt.Errorf("cdn: update domain: %w", err)
+	}
+	return toDomainView(d), nil
+}
+
 func (s *Service) DeleteDomain(ctx context.Context, id uint64) error {
 	d, err := s.domains.FindByID(ctx, id)
 	if err != nil {

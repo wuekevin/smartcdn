@@ -28,6 +28,7 @@ import WorkflowsPage from './pages/ssl/WorkflowsPage';
 import MetricsPage from './pages/monitor/MetricsPage';
 import AlertsPage from './pages/monitor/AlertsPage';
 import AlertChannelsPage from './pages/monitor/AlertChannelsPage';
+import AlertRulesPage from './pages/monitor/AlertRulesPage';
 
 import UsersPage from './pages/system/UsersPage';
 import AuditPage from './pages/system/AuditPage';
@@ -89,6 +90,7 @@ export default function App() {
             <Route path="monitor/metrics" element={<ProtectedRoute><MetricsPage /></ProtectedRoute>} />
             <Route path="monitor/alerts" element={<ProtectedRoute><AlertsPage /></ProtectedRoute>} />
             <Route path="monitor/channels" element={<ProtectedRoute><AlertChannelsPage /></ProtectedRoute>} />
+            <Route path="monitor/alert-rules" element={<ProtectedRoute><AlertRulesPage /></ProtectedRoute>} />
 
             <Route path="system/users" element={<ProtectedRoute><UsersPage /></ProtectedRoute>} />
             <Route path="system/audit" element={<ProtectedRoute><AuditPage /></ProtectedRoute>} />
