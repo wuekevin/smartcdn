@@ -170,6 +170,9 @@ func (e *Engine) Run(ctx context.Context, req PublishRequest) (*PublishResult, e
 		_ = distLock.Release(context.Background())
 	}()
 
+	// keep the lock alive for the duration of the publish job
+	distLock.KeepAlive(ctx)
+
 	// ── Step 5: Capability / provider check ─────────────────────────────────
 	prov, zoneID, err := e.loadProviderAndZone(ctx, d)
 	if err != nil {

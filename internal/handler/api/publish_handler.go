@@ -1,12 +1,14 @@
 package api
 
 import (
+	"errors"
 	"net/http"
 
 	"github.com/gin-gonic/gin"
 
 	publishsvc "github.com/wuekevin/smartcdn/internal/application/publish"
 	"github.com/wuekevin/smartcdn/internal/domain/entity"
+	"github.com/wuekevin/smartcdn/internal/infra/lock"
 )
 
 type PublishHandler struct {
@@ -58,6 +60,10 @@ func (h *PublishHandler) Publish(c *gin.Context) {
 		DryRun:   false,
 	})
 	if err != nil {
+		if errors.Is(err, lock.ErrLockConflict) {
+			c.JSON(http.StatusConflict, gin.H{"error": "该域名有发布任务正在进行中，请稍后再试"})
+			return
+		}
 		c.JSON(http.StatusInternalServerError, gin.H{"error": err.Error()})
 		return
 	}

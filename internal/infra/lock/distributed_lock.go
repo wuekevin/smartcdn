@@ -11,7 +11,7 @@ import (
 
 var ErrLockConflict = errors.New("lock already held by another process")
 
-const defaultTTL = 30 * time.Second
+const defaultTTL = 5 * time.Minute
 
 // DistributedLock is a Redis-backed mutex for protecting DNS publish jobs.
 type DistributedLock struct {
@@ -43,6 +43,23 @@ else
 end`
 	_, err := l.rdb.Eval(ctx, script, []string{l.key}, l.token).Result()
 	return err
+}
+
+// KeepAlive starts a background goroutine that extends the lock every interval
+// until ctx is cancelled. The goroutine stops and the lock is released when ctx ends.
+func (l *DistributedLock) KeepAlive(ctx context.Context) {
+	go func() {
+		ticker := time.NewTicker(defaultTTL / 2)
+		defer ticker.Stop()
+		for {
+			select {
+			case <-ctx.Done():
+				return
+			case <-ticker.C:
+				_ = l.Extend(ctx)
+			}
+		}
+	}()
 }
 
 // Extend refreshes the lock TTL to prevent expiry during long operations.
