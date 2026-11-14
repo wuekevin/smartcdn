@@ -19,7 +19,6 @@ const CHANNEL_TYPES = [
   {
     label: 'Telegram',
     value: 'telegram',
-    icon: '✈️',
     fields: [
       { key: 'bot_token', label: 'Bot Token', required: true, placeholder: '从 @BotFather 获取' },
       { key: 'chat_id', label: 'Chat ID', required: true, placeholder: '群组或频道的 Chat ID' },
@@ -28,7 +27,6 @@ const CHANNEL_TYPES = [
   {
     label: '钉钉',
     value: 'dingtalk',
-    icon: '📌',
     fields: [
       { key: 'webhook_url', label: '钉钉 Webhook URL', required: true, placeholder: 'https://oapi.dingtalk.com/robot/send?access_token=...' },
       { key: 'secret', label: '加签密钥（可选）', required: false, placeholder: 'SEC...' },
@@ -37,7 +35,6 @@ const CHANNEL_TYPES = [
   {
     label: '飞书',
     value: 'feishu',
-    icon: '🪶',
     fields: [
       { key: 'webhook_url', label: '飞书 Webhook URL', required: true, placeholder: 'https://open.feishu.cn/open-apis/bot/v2/hook/...' },
     ],
@@ -45,7 +42,6 @@ const CHANNEL_TYPES = [
   {
     label: 'Slack',
     value: 'slack',
-    icon: '💬',
     fields: [
       { key: 'webhook_url', label: 'Slack Webhook URL', required: true, placeholder: 'https://hooks.slack.com/services/...' },
     ],
@@ -53,7 +49,6 @@ const CHANNEL_TYPES = [
   {
     label: 'Webhook',
     value: 'webhook',
-    icon: '🔗',
     fields: [
       { key: 'url', label: 'Webhook URL', required: true, placeholder: 'https://example.com/notify' },
     ],
@@ -61,7 +56,6 @@ const CHANNEL_TYPES = [
   {
     label: '邮件',
     value: 'email',
-    icon: '📧',
     fields: [
       { key: 'to', label: '收件邮箱', required: true, placeholder: 'ops@example.com' },
     ],
@@ -229,9 +223,7 @@ export default function AlertChannelsPage() {
               onChange={v => { setSelectedType(v as string); setShowTemplate(false); }}
             >
               {CHANNEL_TYPES.map(t => (
-                <Select.Option key={t.value} value={t.value}>
-                  {t.icon} {t.label}
-                </Select.Option>
+                <Select.Option key={t.value} value={t.value}>{t.label}</Select.Option>
               ))}
             </Select>
           </Form.Item>
