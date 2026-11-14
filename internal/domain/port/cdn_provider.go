@@ -8,6 +8,7 @@ type CDNProviderType string
 const (
 	CDNProviderCloudflare  CDNProviderType = "cloudflare"
 	CDNProviderAliyun      CDNProviderType = "aliyun_cdn"
+	CDNProviderAliyunESA   CDNProviderType = "aliyun_esa"
 	CDNProviderTencentEO   CDNProviderType = "tencent_eo"
 )
 

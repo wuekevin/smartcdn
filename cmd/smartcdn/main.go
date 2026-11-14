@@ -36,6 +36,7 @@ import (
 	infraprovider "github.com/wuekevin/smartcdn/internal/infra/provider"
 	"github.com/wuekevin/smartcdn/internal/infra/provider/aliyun"
 	"github.com/wuekevin/smartcdn/internal/infra/provider/aliyun_cdn"
+	"github.com/wuekevin/smartcdn/internal/infra/provider/aliyun_esa"
 	"github.com/wuekevin/smartcdn/internal/infra/provider/cf_cdn"
 	"github.com/wuekevin/smartcdn/internal/infra/provider/cloudflare"
 	"github.com/wuekevin/smartcdn/internal/infra/provider/dnspod"
@@ -146,6 +147,7 @@ func main() {
 
 	cdnRegistry := infraprovider.NewCDNRegistry()
 	cdnRegistry.RegisterCDN(port.CDNProviderAliyun, aliyuncdn.NewAliyunCDNProvider)
+	cdnRegistry.RegisterCDN(port.CDNProviderAliyunESA, aliyunesa.NewAliyunESAProvider)
 	cdnRegistry.RegisterCDN(port.CDNProviderCloudflare, cfcdn.NewCloudflareCDNProvider)
 
 	hub := pubsub.NewHub()

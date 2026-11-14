@@ -12,7 +12,8 @@ interface CDNAccount {
 
 const CDN_PROVIDERS = [
   { label: 'Cloudflare', value: 'cloudflare', fields: ['api_token'] },
-  { label: '阿里云 CDN', value: 'aliyun_cdn', fields: ['access_key_id', 'access_key_secret'] },
+  { label: '阿里云 ESA（边缘安全加速）', value: 'aliyun_esa', fields: ['access_key_id', 'access_key_secret'] },
+  { label: '阿里云 CDN（旧版）', value: 'aliyun_cdn', fields: ['access_key_id', 'access_key_secret'] },
   { label: '腾讯云 EdgeOne', value: 'tencent_eo', fields: ['secret_id', 'secret_key', 'zone_id'] },
 ];
 
