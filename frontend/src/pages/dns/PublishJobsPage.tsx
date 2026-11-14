@@ -7,9 +7,13 @@ import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import client from '../../api/client';
 
 interface Domain { id: number; name: string; }
+interface DNSRecord { host: string; type: string; value: string; ttl: number; line: string; priority?: number; }
 
-const statusColor: Record<string, string> = {
+const STATUS_COLOR: Record<string, string> = {
   pending: 'orange', running: 'blue', success: 'green', failed: 'red',
+};
+const STATUS_LABEL: Record<string, string> = {
+  pending: '待执行', running: '进行中', success: '成功', failed: '失败',
 };
 
 export default function PublishJobsPage() {
@@ -45,15 +49,20 @@ export default function PublishJobsPage() {
     triggerForm.resetFields();
   };
 
+  // 将域名记录列表映射为 PublishRecord 格式
+  const toPublishRecords = (items: DNSRecord[]) =>
+    items.map(r => ({ host: r.host, type: r.type, value: r.value, ttl: r.ttl, line: r.line, priority: r.priority ?? 0 }));
+
   const triggerMut = useMutation({
-    mutationFn: (body: { domain_id: number; dry_run: boolean }) =>
-      client.post(`/domains/${body.domain_id}/publish`, {
-        dry_run: body.dry_run,
-        records: recordsData?.items ?? [],
-      }),
-    onSuccess: () => {
+    mutationFn: (body: { domain_id: number; dry_run: boolean }) => {
+      const path = body.dry_run
+        ? `/domains/${body.domain_id}/publish/dry-run`
+        : `/domains/${body.domain_id}/publish`;
+      return client.post(path, { records: toPublishRecords(recordsData?.items ?? []) });
+    },
+    onSuccess: (_data, vars) => {
       qc.invalidateQueries({ queryKey: ['publish-jobs'] });
-      Message.success('发布任务已提交');
+      Message.success(vars.dry_run ? '试运行完成，未写入 DNS' : '发布任务已提交');
       handleClose();
     },
     onError: (e: unknown) => {
@@ -64,6 +73,10 @@ export default function PublishJobsPage() {
 
   const handleTrigger = async () => {
     const vals = await triggerForm.validate();
+    if (!recordsData?.items?.length) {
+      Message.warning('该域名暂无 DNS 记录，请先添加记录再发布');
+      return;
+    }
     triggerMut.mutate({ domain_id: Number(vals.domain_id), dry_run: vals.dry_run ?? false });
   };
 
@@ -75,7 +88,7 @@ export default function PublishJobsPage() {
     },
     {
       title: '状态', dataIndex: 'status',
-      render: (v: string) => <Tag color={statusColor[v] ?? 'gray'}>{v}</Tag>,
+      render: (v: string) => <Tag color={STATUS_COLOR[v] ?? 'gray'}>{STATUS_LABEL[v] ?? v}</Tag>,
     },
     {
       title: '试运行', dataIndex: 'dry_run',
@@ -119,9 +132,18 @@ export default function PublishJobsPage() {
           <Form.Item label="试运行（不实际写入 DNS）" field="dry_run" triggerPropName="checked" initialValue={false}>
             <Switch checkedText="试运行" uncheckedText="正式发布" />
           </Form.Item>
-          <div style={{ color: '#86909c', fontSize: 12 }}>
-            将把域名当前所有 DNS 记录发布到 CDN 服务商
-          </div>
+          {selectedDomainId && (
+            <div style={{ color: recordsLoading ? '#86909c' : '#165dff', fontSize: 12, marginBottom: 8 }}>
+              {recordsLoading
+                ? '正在加载记录…'
+                : `已加载 ${recordsData?.items?.length ?? 0} 条 DNS 记录，将发布到 DNS 服务商`}
+            </div>
+          )}
+          {!selectedDomainId && (
+            <div style={{ color: '#86909c', fontSize: 12 }}>
+              选择域名后将发布其当前所有 DNS 记录到 DNS 服务商
+            </div>
+          )}
         </Form>
       </Modal>
     </>
