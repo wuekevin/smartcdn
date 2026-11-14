@@ -2,7 +2,7 @@
 
 -- Time-series metric data points
 CREATE TABLE metrics (
-    id           BIGINT UNSIGNED AUTO_INCREMENT PRIMARY KEY,
+    id           BIGINT UNSIGNED AUTO_INCREMENT,
     source_type  VARCHAR(32)     NOT NULL,
     source_id    BIGINT UNSIGNED NOT NULL,
     type         VARCHAR(64)     NOT NULL,
@@ -10,6 +10,7 @@ CREATE TABLE metrics (
     tags         VARCHAR(512)    NOT NULL DEFAULT '{}',
     collected_at DATETIME(3)     NOT NULL,
     created_at   DATETIME        NOT NULL DEFAULT CURRENT_TIMESTAMP,
+    PRIMARY KEY (id, collected_at),
     KEY idx_metric_source (source_type, source_id, type, collected_at),
     KEY idx_metric_window (type, collected_at)
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci
